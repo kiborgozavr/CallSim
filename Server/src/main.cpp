@@ -1,6 +1,9 @@
-#include <iostream>
+#include "Server.h"
 
 int main() {
-    std::cout << "Hello from Server!" << std::endl;
+    constexpr unsigned int DEFAULT_PORT = 15001;
+    Server server(DEFAULT_PORT);
+    server.start();
+
     return 0;
 }
