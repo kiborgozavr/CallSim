@@ -1,9 +1,35 @@
-#include "Client.h"
+#include "../inc/Client.hpp"
 
+#include <thread>
+#include <iostream>
+
+namespace client {
 Client::Client(const unsigned int port) :
-        rw_wrapper(port) {
+        _rwWrapper(port) {
     std::cout << "Client connected!\n";
 }
-void Client::start() { rw_wrapper.start(); }
-void Client::stop() { rw_wrapper.stop(); }
-void Client::write(const std::string& msg) { rw_wrapper.async_write(msg); }
+void Client::start() {
+    _rwWrapper.asyncRead();
+    _rwWrapper.start();
+
+    _consoleThread = std::thread([this] { readFromConsole(); });
+
+    _consoleThread.join();
+}
+void Client::stop() { _rwWrapper.stop(); }
+
+void Client::write(const std::string& msg) { _rwWrapper.asyncWrite(msg); }
+
+void Client::readFromConsole() {
+    std::string line;
+
+    while (std::getline(std::cin, line)) {
+        if (line == "quit") {
+            stop();
+            break;
+        }
+        write(line);
+    }
+}
+
+}  // namespace client

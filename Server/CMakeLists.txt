@@ -1,7 +1,11 @@
 add_executable(Server
         src/main.cpp
         src/Server.cpp
-        src/Server.h
-        src/ServerRwWrapper.cpp
-        src/ServerRwWrapper.h
+        inc/Server.hpp
+        src/RwWrapper.cpp
+        inc/RwWrapper.hpp
+)
+
+target_include_directories(Server PRIVATE
+        inc
 )

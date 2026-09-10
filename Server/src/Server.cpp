@@ -1,9 +1,10 @@
-#include "Server.h"
+#include "../inc/Server.hpp"
 
 #include <iostream>
-
+namespace server {
 Server::Server(const unsigned int port) :
-        rw_wrapper(port) {
+        _rwWrapper(port) {
     std::cout << "Server started. Waiting for client...\n";
 }
-void Server::start() { rw_wrapper.start(); }
+void Server::start() { _rwWrapper.start(); }
+}  // namespace server

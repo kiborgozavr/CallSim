@@ -1,8 +1,8 @@
-#include "Server.h"
+#include "../inc/Server.hpp"
 
 int main() {
     constexpr unsigned int DEFAULT_PORT = 15001;
-    Server server(DEFAULT_PORT);
+    server::Server server(DEFAULT_PORT);
     server.start();
 
     return 0;

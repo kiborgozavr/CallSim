@@ -1,7 +1,8 @@
 #pragma once
 
-#include "ServerRwWrapper.h"
+#include "RwWrapper.hpp"
 
+namespace server {
 class Server {
 public:
     explicit Server(unsigned int port);
@@ -9,5 +10,7 @@ public:
     void start();
 
 private:
-    rwWrapperServer rw_wrapper;
+    rwWrapper _rwWrapper;
 };
+
+}  // namespace server
