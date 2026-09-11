@@ -1,4 +1,5 @@
 #include "../inc/RwWrapper.hpp"
+#include "Message.pb.h"
 
 #include <iostream>
 #include <thread>
@@ -20,36 +21,64 @@ void RwWrapper::stop() {
         _thread.join();
     }
 }
-void RwWrapper::asyncWrite(const std::string& message) {
-    auto data = std::make_shared<std::string>(message + "\n");
+void RwWrapper::asyncWrite(const CallSim::Message& message) {
+    std::string data;
+
+    if (!message.SerializeToString(&data)) {
+        std::cerr << "Failed to serialize message\n";
+        return;
+    }
+
+    const auto size = static_cast<std::uint32_t>(data.size());
+
+    auto buffer = std::make_shared<std::string>(sizeof(size) + data.size(), '\0');
+
+    std::copy_n(reinterpret_cast<const char*>(&size), sizeof(size), buffer->begin());
+
+    std::copy(data.begin(), data.end(), buffer->begin() + sizeof(size));
 
     boost::asio::async_write(
-        _socket, boost::asio::buffer(*data), [this, data](const boost::system::error_code& errorCode, std::size_t) {
+        _socket, boost::asio::buffer(*buffer), [buffer](const boost::system::error_code& errorCode, std::size_t) {
             if (errorCode) {
                 std::cerr << "Write error: " << errorCode.message() << '\n';
             }
         });
 }
 void RwWrapper::asyncRead() {
-    boost::asio::async_read_until(
-        _socket, _buffer, '\n', [this](const boost::system::error_code& errorCode, std::size_t) {
-            if (errorCode) {
-                if (errorCode == boost::asio::error::operation_aborted) {
-                    return;
-                }
+    auto sizeBuffer = std::make_shared<std::array<char, sizeof(std::uint32_t)>>();
 
-                std::cerr << "Read error: " << errorCode.message() << '\n';
-                return;
-            }
+    boost::asio::async_read(_socket,
+                            boost::asio::buffer(*sizeBuffer),
+                            [this, sizeBuffer](const boost::system::error_code& errorCode, std::size_t) {
+                                if (errorCode) {
+                                    std::cerr << "Read size error: " << errorCode.message() << '\n';
+                                    return;
+                                }
 
-            std::istream stream(&_buffer);
+                                std::uint32_t size;
+                                std::copy(sizeBuffer->begin(), sizeBuffer->end(), reinterpret_cast<char*>(&size));
 
-            std::string response;
-            std::getline(stream, response);
+                                auto data = std::make_shared<std::string>(size, '\0');
 
-            std::cout << response << '\n';
+                                boost::asio::async_read(
+                                    _socket,
+                                    boost::asio::buffer(*data),
+                                    [this, data](const boost::system::error_code& errorCode, std::size_t) {
+                                        if (errorCode) {
+                                            std::cerr << "Read message error: " << errorCode.message() << '\n';
+                                            return;
+                                        }
 
-            asyncRead();
-        });
+                                        CallSim::Message message;
+                                        if (!message.ParseFromArray(data->data(), data->size())) {
+                                            std::cerr << "Failed to parse protobuf message\n";
+                                            return;
+                                        }
+
+                                        std::cout << message.payload() << '\n';
+
+                                        asyncRead();
+                                    });
+                            });
 }
 }  // namespace client

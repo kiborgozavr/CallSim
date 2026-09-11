@@ -5,6 +5,12 @@ add_executable(Client
         inc/RwWrapper.hpp
         src/RwWrapper.cpp
 )
+
 target_include_directories(Client PRIVATE
         inc
+)
+
+target_link_libraries(Client
+        PRIVATE
+        proto
 )

@@ -1,4 +1,5 @@
 #pragma once
+#include "Message.pb.h"
 
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
@@ -12,7 +13,7 @@ public:
 
     void stop();
 
-    void asyncWrite(const std::string& message);
+    void asyncWrite(const CallSim::Message& message);
 
     void asyncRead();
 

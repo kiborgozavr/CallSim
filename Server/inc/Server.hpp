@@ -10,7 +10,7 @@ public:
     void start();
 
 private:
-    rwWrapper _rwWrapper;
+    RwWrapper _rwWrapper;
 };
 
 }  // namespace server

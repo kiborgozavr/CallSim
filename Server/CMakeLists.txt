@@ -9,3 +9,8 @@ add_executable(Server
 target_include_directories(Server PRIVATE
         inc
 )
+
+target_link_libraries(Server
+        PRIVATE
+        proto
+)

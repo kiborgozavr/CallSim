@@ -1,12 +1,13 @@
 #pragma once
+#include "Message.pb.h"
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
 namespace server {
-class rwWrapper {
+class RwWrapper {
 public:
-    explicit rwWrapper(unsigned int port);
+    explicit RwWrapper(unsigned int port);
 
     void start();
 
@@ -15,7 +16,11 @@ private:
 
     void asyncRead();
 
-    void asyncWrite(const std::string& message);
+    void asyncReadMessage(std::uint32_t size);
+
+    void asyncWrite(const CallSim::Message& message);
+
+    static void printMessage(const CallSim::Message& message, std::size_t dataSize);
 
     boost::asio::io_context _ioContext;
     boost::asio::ip::tcp::acceptor _acceptor;
