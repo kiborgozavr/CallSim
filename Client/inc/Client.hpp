@@ -2,6 +2,7 @@
 
 #include "Message.pb.h"
 #include "RwWrapper.hpp"
+#include "stateMachine/StateMachine.hpp"
 
 namespace client {
 class Client {
@@ -15,6 +16,8 @@ private:
 
     void readFromConsole();
 
+    void starExchangingMessages();
+
     void write(const std::string &msg);
 
     CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
@@ -23,6 +26,8 @@ private:
     RwWrapper _rwWrapper;
 
     std::string _clientId;
+
+    StateMachine _stateMachine;
 };
 
 }  // namespace client

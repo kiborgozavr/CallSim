@@ -12,6 +12,18 @@ Client::Client(const unsigned int port) :
     std::cout << "Client connected!\n";
 }
 void Client::start() {
+    std::string line;
+
+    while (std::getline(std::cin, line)) {
+        if (line == "R") {
+            _stateMachine.next(Register);
+            break;
+        }
+        std::cout << "Client isn't registered! Messages exchange is denied!\n";
+    }
+    starExchangingMessages();
+}
+void Client::starExchangingMessages() {
     _rwWrapper.asyncRead();
     _rwWrapper.start();
 
@@ -19,7 +31,11 @@ void Client::start() {
 
     _consoleThread.join();
 }
-void Client::stop() { _rwWrapper.stop(); }
+
+void Client::stop() {
+    _rwWrapper.stop();
+    _stateMachine.next(Unregister);
+}
 
 void Client::write(const std::string& msg) {
     const CallSim::Message message = createMessage(CallSim::Text, msg);
@@ -44,7 +60,7 @@ void Client::readFromConsole() {
     std::string line;
 
     while (std::getline(std::cin, line)) {
-        if (line == "quit") {
+        if (line == "U") {
             stop();
             break;
         }
