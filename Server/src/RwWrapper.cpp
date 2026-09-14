@@ -39,8 +39,6 @@ void RwWrapper::asyncRead() {
                                 std::uint32_t size;
                                 std::copy(sizeBuffer->begin(), sizeBuffer->end(), reinterpret_cast<char*>(&size));
 
-                                auto data = std::make_shared<std::string>(size, '\0');
-
                                 asyncReadMessage(size);
                             });
 }
