@@ -6,11 +6,10 @@ namespace client {
 
 class Registered : public IState {
 public:
-    std::string get_name() const override;
+    [[nodiscard]] std::string getStateName() const override;
 
     std::unique_ptr<IState> transition(Events event) override;
 
     void enter() override;
 };
-
 }  // namespace client

@@ -1,11 +1,11 @@
-#include "../../../inc/stateMachine/states/Connected.hpp"
-#include "../../../inc/stateMachine/states/Registered.hpp"
+#include "../../inc/stateMachine/Connected.hpp"
+#include "../../inc/stateMachine/Registered.hpp"
 
 #include <iostream>
 
 namespace client {
 
-std::string Registered::get_name() const { return "Registered"; }
+std::string Registered::getStateName() const { return "Registered"; }
 
 void Registered::enter() { std::cout << "Client enter the state Registered\n"; }
 

@@ -1,5 +1,6 @@
 #include "../inc/Client.hpp"
 #include "Message.pb.h"
+#include "stateMachine/Connected.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -8,7 +9,9 @@
 namespace client {
 Client::Client(const unsigned int port) :
         _rwWrapper(port),
-        _clientId("John Doe") {
+        _clientId("John Doe"),
+        _state(std::make_unique<Connected>()) {
+    _state->enter();
     std::cout << "Client connected!\n";
 }
 void Client::start() {
@@ -16,14 +19,14 @@ void Client::start() {
 
     while (std::getline(std::cin, line)) {
         if (line == "R") {
-            _stateMachine.next(Register);
+            nextState(Register);
             break;
         }
         std::cout << "Client isn't registered! Messages exchange is denied!\n";
     }
-    starExchangingMessages();
+    startExchangingMessages();
 }
-void Client::starExchangingMessages() {
+void Client::startExchangingMessages() {
     _rwWrapper.asyncRead();
     _rwWrapper.start();
 
@@ -34,7 +37,7 @@ void Client::starExchangingMessages() {
 
 void Client::stop() {
     _rwWrapper.stop();
-    _stateMachine.next(Unregister);
+    nextState(Unregister);
 }
 
 void Client::write(const std::string& msg) {
@@ -66,5 +69,13 @@ void Client::readFromConsole() {
         }
         write(line);
     }
+}
+void Client::nextState(const Events event) {
+    if (auto newState = _state->transition(event); newState) {
+        _state = std::move(newState);
+        _state->enter();
+        return;
+    }
+    std::cerr << "Undefined transition. Client stays in state: " << _state->getStateName() << '\n';
 }
 }  // namespace client

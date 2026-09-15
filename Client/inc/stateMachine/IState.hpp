@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../Events.hpp"
+#include "Events.hpp"
 
 #include <memory>
+#include <string>
 
 namespace client {
 
@@ -12,7 +13,7 @@ public:
 
     virtual std::unique_ptr<IState> transition(Events) = 0;
 
-    virtual std::string get_name() const = 0;
+    [[nodiscard]] virtual std::string getStateName() const = 0;
 
     virtual void enter() = 0;
 };

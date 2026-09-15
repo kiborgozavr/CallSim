@@ -4,14 +4,12 @@ add_executable(Client
         inc/Client.hpp
         inc/RwWrapper.hpp
         src/RwWrapper.cpp
-        inc/stateMachine/states/IState.hpp
+        inc/stateMachine/IState.hpp
         inc/stateMachine/Events.hpp
-        src/stateMachine/StateMachine.cpp
-        inc/stateMachine/StateMachine.hpp
-        src/stateMachine/states/Connected.cpp
-        inc/stateMachine/states/Connected.hpp
-        src/stateMachine/states/Registered.cpp
-        inc/stateMachine/states/Registered.hpp
+        src/stateMachine/Connected.cpp
+        inc/stateMachine/Connected.hpp
+        src/stateMachine/Registered.cpp
+        inc/stateMachine/Registered.hpp
 )
 
 target_include_directories(Client PRIVATE
