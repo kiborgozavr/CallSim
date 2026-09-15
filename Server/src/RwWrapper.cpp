@@ -26,20 +26,17 @@ void RwWrapper::acceptClient() {
     });
 }
 void RwWrapper::asyncRead() {
-    auto sizeBuffer = std::make_shared<std::array<char, sizeof(std::uint32_t)>>();
+    auto size = std::make_shared<std::uint32_t>();
 
     boost::asio::async_read(_socket,
-                            boost::asio::buffer(*sizeBuffer),
-                            [this, sizeBuffer](const boost::system::error_code& errorCode, std::size_t) {
+                            boost::asio::buffer(size.get(), sizeof(*size)),
+                            [this, size](const boost::system::error_code& errorCode, std::size_t) {
                                 if (errorCode) {
                                     std::cerr << "Read size error: " << errorCode.message() << '\n';
                                     return;
                                 }
 
-                                std::uint32_t size;
-                                std::copy(sizeBuffer->begin(), sizeBuffer->end(), reinterpret_cast<char*>(&size));
-
-                                asyncReadMessage(size);
+                                asyncReadMessage(*size);
                             });
 }
 void RwWrapper::asyncReadMessage(const std::uint32_t size) {
@@ -79,16 +76,14 @@ void RwWrapper::asyncWrite(const CallSim::Message& message) {
     }
 
     const auto size = static_cast<std::uint32_t>(data.size());
-
     auto buffer = std::make_shared<std::string>(sizeof(size) + data.size(), '\0');
 
-    std::copy_n(reinterpret_cast<const char*>(&size), sizeof(size), buffer->begin());
-
-    std::copy(data.begin(), data.end(), buffer->begin() + sizeof(size));
+    std::memcpy(buffer->data(), &size, sizeof(size));
+    std::memcpy(buffer->data() + sizeof(size), data.data(), data.size());
 
     boost::asio::async_write(_socket,
                              boost::asio::buffer(*buffer),
-                             [buffer, this, data](const boost::system::error_code& errorCode, std::size_t) {
+                             [this, buffer, data](const boost::system::error_code& errorCode, std::size_t) {
                                  if (errorCode) {
                                      std::cerr << "Write error: " << errorCode.message() << '\n';
                                      return;
