@@ -1,9 +1,6 @@
 #include "../inc/Client.hpp"
 #include "Message.pb.h"
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -11,7 +8,7 @@
 namespace client {
 Client::Client(const unsigned int port) :
         _rwWrapper(port),
-        _clientId(generateUuid()) {
+        _clientId("John Doe") {
     std::cout << "Client connected!\n";
 }
 void Client::start() {
@@ -25,18 +22,15 @@ void Client::start() {
 void Client::stop() { _rwWrapper.stop(); }
 
 void Client::write(const std::string& msg) {
-    CallSim::Message message = createMessage(CallSim::Text, this->_clientId, msg);
+    const CallSim::Message message = createMessage(CallSim::Text, msg);
     _rwWrapper.asyncWrite(message);
 }
 
-CallSim::Message Client::createMessage(const CallSim::MessageType messageType, std::string fromUser,
-                                       std::string payload) {
+CallSim::Message Client::createMessage(CallSim::MessageType msgType, std::string msgPayload) {
     CallSim::Message message;
-    message.set_type(messageType);
+    message.set_type(msgType);
 
-    message.set_from_user(fromUser);
-
-    message.set_payload(payload);
+    message.set_payload(msgPayload);
 
     const auto now = std::chrono::system_clock::now();
     const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -56,12 +50,5 @@ void Client::readFromConsole() {
         }
         write(line);
     }
-}
-
-std::string Client::generateUuid() {
-    boost::uuids::random_generator generator;
-    const boost::uuids::uuid uuid = generator();
-
-    return boost::uuids::to_string(uuid);
 }
 }  // namespace client

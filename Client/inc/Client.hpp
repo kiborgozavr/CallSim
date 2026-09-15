@@ -17,9 +17,7 @@ private:
 
     void write(const std::string &msg);
 
-    std::string generateUuid();
-
-    CallSim::Message createMessage(CallSim::MessageType messageType, std::string fromUser, std::string payload);
+    CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
 
     std::thread _consoleThread;
     RwWrapper _rwWrapper;
