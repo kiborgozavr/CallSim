@@ -5,26 +5,26 @@
 #include <boost/asio/ip/tcp.hpp>
 
 namespace server {
+using tcp = boost::asio::ip::tcp;
+
+class Server;
 class RwWrapper {
 public:
-    explicit RwWrapper(unsigned int port);
+    explicit RwWrapper(Server& server, unsigned int port);
 
     void start();
 
 private:
     void acceptClient();
 
-    void asyncRead();
+    void asyncRead(std::shared_ptr<tcp::socket> socket, unsigned int clientId);
 
-    void asyncReadMessage(std::uint32_t size);
+    void asyncReadMessage(std::shared_ptr<tcp::socket> socket, std::uint32_t size, unsigned int clientId);
 
-    void asyncWrite(const CallSim::Message& message);
-
-    static void printMessage(const CallSim::Message& message, std::size_t dataSize);
+    void asyncWrite(std::shared_ptr<tcp::socket> socket, CallSim::Message message, unsigned int clientId);
 
     boost::asio::io_context _ioContext;
-    boost::asio::ip::tcp::acceptor _acceptor;
-    boost::asio::ip::tcp::socket _socket;
-    boost::asio::streambuf _buffer;
+    tcp::acceptor _acceptor;
+    Server& _server;
 };
 }  // namespace server

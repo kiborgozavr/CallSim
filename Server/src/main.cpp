@@ -1,4 +1,4 @@
-#include "../inc/Server.hpp"
+#include "Server.hpp"
 
 int main() {
     constexpr unsigned int DEFAULT_PORT = 15001;

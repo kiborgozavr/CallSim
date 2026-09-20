@@ -1,33 +1,38 @@
 #pragma once
 
+#include "IState.hpp"
 #include "Message.pb.h"
 #include "RwWrapper.hpp"
-#include "stateMachine/IState.hpp"
 
 namespace client {
 class Client {
 public:
-    explicit Client(unsigned int port);
+    explicit Client(unsigned int port, std::string clientName);
+
+    ~Client();
 
     void start();
+
+    void handleMessage(const CallSim::Message& message);
 
 private:
     void stop();
 
     void readFromConsole();
 
-    void startExchangingMessages();
+    void write(const std::string& message);
 
-    void write(const std::string& msg);
+    void nextState(CallSim::MessageType msgType);
 
-    void nextState(Events event);
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
+    CallSim::Message createRegisterMessage(std::string fromUser);
+    void setTimestamp(CallSim::Message& message);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
+    void printMessage(const CallSim::Message& message);
 
-    std::thread _consoleThread;
     RwWrapper _rwWrapper;
 
-    std::string _clientId;
+    std::string _clientName;
     std::unique_ptr<IState> _state;
 };
 

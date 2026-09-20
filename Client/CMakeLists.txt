@@ -4,16 +4,16 @@ add_executable(Client
         inc/Client.hpp
         inc/RwWrapper.hpp
         src/RwWrapper.cpp
-        inc/stateMachine/IState.hpp
-        inc/stateMachine/Events.hpp
-        src/stateMachine/Connected.cpp
-        inc/stateMachine/Connected.hpp
-        src/stateMachine/Registered.cpp
-        inc/stateMachine/Registered.hpp
+        inc/IState.hpp
+        inc/Connected.hpp
+        src/Connected.cpp
+        src/Registered.cpp
+        inc/Registered.hpp
 )
 
 target_include_directories(Client PRIVATE
         inc
+        ${CMAKE_SOURCE_DIR}/common
 )
 
 target_link_libraries(Client

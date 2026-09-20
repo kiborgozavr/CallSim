@@ -5,24 +5,29 @@
 #include <boost/asio/io_context.hpp>
 
 namespace client {
+class Client;
+using tcp = boost::asio::ip::tcp;
+
 class RwWrapper {
 public:
-    explicit RwWrapper(unsigned int port);
+    explicit RwWrapper(Client& client, unsigned int port);
 
     void start();
 
     void stop();
 
-    void asyncWrite(const CallSim::Message& message);
+    void asyncWrite(CallSim::Message message);
 
     void asyncRead();
 
 private:
-    boost::asio::io_context _ioContext;
-    boost::asio::ip::tcp::socket _socket;
-    boost::asio::ip::tcp::resolver _resolver;
+    void asyncReadMessage(std::uint32_t size);
 
-    boost::asio::streambuf _buffer;
+    boost::asio::io_context _ioContext;
+    tcp::socket _socket;
+    tcp::resolver _resolver;
+
+    Client& _client;
 
     std::thread _thread;
 };
