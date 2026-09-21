@@ -81,7 +81,7 @@ std::vector<std::string> Client::parseInput(const std::string& line) {
 }
 
 void Client::handleConsoleInput(const std::string& line, bool& continueReadingOut) {
-    if (_state->getState() == common::ClientStates::REGISTERED) {
+    if (_state->getState() == common::ClientStates::registered) {
         const auto tokens = parseInput(line);
 
         if (tokens.empty() || tokens.size() > 2) {
@@ -103,7 +103,7 @@ void Client::handleConsoleInput(const std::string& line, bool& continueReadingOu
             std::cerr << "Unknown command. Please try again.\n";
         }
 
-    } else if (_state->getState() == common::ClientStates::CALLING) {
+    } else if (_state->getState() == common::ClientStates::calling) {
         const CallSim::Message message = createMessage(CallSim::Text, _contactName, line);
         write(message);
 

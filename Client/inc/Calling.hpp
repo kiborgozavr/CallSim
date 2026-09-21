@@ -9,7 +9,7 @@ public:
 
     void enter() override;
 
-    [[nodiscard]] common::ClientStates getState() const override { return common::ClientStates::CALLING; }
+    [[nodiscard]] common::ClientStates getState() const override { return common::ClientStates::calling; }
 };
 
 }  // namespace client

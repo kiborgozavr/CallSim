@@ -43,15 +43,9 @@ CallSim::Message Server::registerClient(const CallSim::Message& message, const u
                              "This username is already taken. Restart the app with a different name.");
     }
 
-    if (_clients.find(clientId) == _clients.end()) {
-        return createMessage(CallSim::MessageType::Text);  // TODO - change type to err (will be in the next PR)
-    }
-
     SavedClient& client = _clients.at(clientId);
-    client._name = message.from_user();
     client._state = common::ClientStates::registered;
     client._name = ClientNameFromMessage;
-    client._state = common::ClientStates::REGISTERED;
     _registeredClientNames.insert(ClientNameFromMessage);
 
     std::cout << "Client with ID = " << clientId << " registered with name " << client._name << "\n";
@@ -60,7 +54,7 @@ CallSim::Message Server::registerClient(const CallSim::Message& message, const u
 }
 CallSim::Message Server::registerCall(const CallSim::Message& message, const unsigned int clientId) {
     SavedClient& client = _clients.at(clientId);
-    client._state = common::ClientStates::CALLING;
+    client._state = common::ClientStates::calling;
 
     std::cout << "Client with ID = " << clientId << " calling " << message.payload() << "\n";
 

@@ -28,10 +28,9 @@ public:
 private:
     CallSim::Message registerClient(const CallSim::Message& message, unsigned int clientId);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
     CallSim::Message registerCall(const CallSim::Message& message, unsigned int clientId);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
     CallSim::Message createMessage(CallSim::MessageType msgType);
     void setTimestamp(CallSim::Message& message);
 
