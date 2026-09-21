@@ -10,8 +10,6 @@ public:
 
     void enter() override;
 
-    [[nodiscard]] common::ClientStates getState() const override {
-        return common::ClientStates::REGISTERED;
-    }
+    [[nodiscard]] common::ClientStates getState() const override;
 };
 }  // namespace client

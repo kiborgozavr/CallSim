@@ -14,4 +14,6 @@ std::unique_ptr<IState> Connected::transition(const CallSim::MessageType& msgTyp
 }
 
 void Connected::enter() { std::cout << "Starting work...\n"; }
+
+common::ClientStates Connected::getState() const { return common::ClientStates::connected; }
 }  // namespace client

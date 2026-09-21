@@ -9,7 +9,7 @@ using tcp = boost::asio::ip::tcp;
 struct SavedClient {
     std::shared_ptr<tcp::socket> _socket;
     std::string _name;
-    common::ClientStates _state = common::ClientStates::CONNECTED;
+    common::ClientStates _state = common::ClientStates::connected;
 
     explicit SavedClient(const std::shared_ptr<tcp::socket>& socket) :
             _socket(socket) {}
@@ -28,9 +28,7 @@ public:
 private:
     CallSim::Message registerClient(const CallSim::Message& message, unsigned int clientId);
 
-    CallSim::Message responseMessage(std::string msgPayload);
-
-    CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
     CallSim::Message createMessage(CallSim::MessageType msgType);
     void setTimestamp(CallSim::Message& message);
 

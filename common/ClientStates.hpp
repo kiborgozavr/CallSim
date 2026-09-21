@@ -4,15 +4,15 @@
 
 namespace common {
 enum class ClientStates {
-    CONNECTED,
-    REGISTERED,
+    connected,
+    registered,
 };
 
 constexpr std::string_view getStateName(const ClientStates state) {
     switch (state) {
-        case ClientStates::CONNECTED:
+        case ClientStates::connected:
             return "Connected";
-        case ClientStates::REGISTERED:
+        case ClientStates::registered:
             return "Registered";
     }
 

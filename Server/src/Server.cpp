@@ -1,5 +1,5 @@
-#include "Server.hpp"
 #include "ClientStates.hpp"
+#include "Server.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -17,10 +17,6 @@ CallSim::Message Server::handleMessage(const CallSim::Message& message, const un
     switch (message.type()) {
         case CallSim::MessageType::Register:
             return registerClient(message, clientId);
-        case CallSim::MessageType::Text:
-            return responseMessage(message.payload());
-        default:
-            return responseMessage("Error");
     }
 }
 unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
@@ -34,21 +30,20 @@ unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
 }
 
 CallSim::Message Server::registerClient(const CallSim::Message& message, const unsigned int clientId) {
+    if (_clients.find(clientId) == _clients.end()) {
+        return createMessage(CallSim::MessageType::Text);  // TODO - change type to err (will be in the next PR)
+    }
+
     SavedClient& client = _clients.at(clientId);
     client._name = message.from_user();
-    client._state = common::ClientStates::REGISTERED;
+    client._state = common::ClientStates::registered;
 
     std::cout << "Client with ID = " << clientId << " registered with name " << client._name << "\n";
 
     return createMessage(CallSim::MessageType::Registered);
 }
 
-CallSim::Message Server::responseMessage(std::string msgPayload) {
-    msgPayload = "Re: " + msgPayload;
-    return createMessage(CallSim::Text, msgPayload);
-}
-
-CallSim::Message Server::createMessage(const CallSim::MessageType msgType, std::string msgPayload) {
+CallSim::Message Server::createMessage(const CallSim::MessageType msgType, const std::string& msgPayload) {
     auto message = createMessage(msgType);
 
     message.set_payload(msgPayload);
