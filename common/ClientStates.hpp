@@ -6,6 +6,7 @@ namespace common {
 enum class ClientStates {
     connected,
     registered,
+    calling,
 };
 
 constexpr std::string_view getStateName(const ClientStates state) {
@@ -14,6 +15,8 @@ constexpr std::string_view getStateName(const ClientStates state) {
             return "Connected";
         case ClientStates::registered:
             return "Registered";
+        case ClientStates::calling:
+            return "Calling";
     }
 
     return "Unknown";

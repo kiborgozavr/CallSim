@@ -29,6 +29,9 @@ private:
     CallSim::Message registerClient(const CallSim::Message& message, unsigned int clientId);
 
     CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
+    CallSim::Message registerCall(const CallSim::Message& message, unsigned int clientId);
+
+    CallSim::Message createMessage(CallSim::MessageType msgType, std::string msgPayload);
     CallSim::Message createMessage(CallSim::MessageType msgType);
     void setTimestamp(CallSim::Message& message);
 
@@ -36,6 +39,7 @@ private:
 
     RwWrapper _rwWrapper;
     std::unordered_map<unsigned int, SavedClient> _clients;
+    std::unordered_set<std::string> _registeredClientNames;
     unsigned int _nextClientId = 0;
 };
 

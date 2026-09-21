@@ -9,6 +9,8 @@ add_executable(Client
         src/Connected.cpp
         src/Registered.cpp
         inc/Registered.hpp
+        src/Calling.cpp
+        inc/Calling.hpp
 )
 
 target_include_directories(Client PRIVATE

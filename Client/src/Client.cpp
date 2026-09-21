@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <thread>
 
 namespace client {
@@ -28,15 +29,15 @@ void Client::start() {
 
 void Client::stop() { _rwWrapper.stop(); }
 
-void Client::write(const std::string& msg) {
-    const CallSim::Message message = createMessage(CallSim::Text, msg);
-    _rwWrapper.asyncWrite(message);
-}
+void Client::write(const CallSim::Message& message) { _rwWrapper.asyncWrite(message); }
 
-CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& msgPayload = "") {
+CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& toUser = "",
+                                       const std::string& msgPayload = "") {
     CallSim::Message message;
 
     message.set_type(msgType);
+    message.set_from_user(_clientName);
+    message.set_to_user(toUser);
     message.set_payload(msgPayload);
     setTimestamp(message);
 
@@ -58,11 +59,56 @@ void Client::setTimestamp(CallSim::Message& message) {
 void Client::readFromConsole() {
     std::string line;
 
-    while (std::getline(std::cin, line)) {
-        if (line == "exit") {
-            break;
+    bool continueReading = true;
+
+    while (continueReading) {
+        std::getline(std::cin, line);
+
+        handleConsoleInput(line, continueReading);
+    }
+}
+
+std::vector<std::string> Client::parseInput(const std::string& line) {
+    std::istringstream iss(line);
+
+    std::vector<std::string> tokens;
+    std::string token;
+
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+void Client::handleConsoleInput(const std::string& line, bool& continueReadingOut) {
+    if (_state->getState() == common::ClientStates::REGISTERED) {
+        const auto tokens = parseInput(line);
+
+        if (tokens.empty() || tokens.size() > 2) {
+            std::cerr << "Invalid input. Please try again.\n";
         }
-        write(line);
+
+        const std::string& command = tokens[0];
+
+        if (command == "exit") {
+            continueReadingOut = false;
+
+        } else if (command == "call") {
+            const std::string& contact = tokens[1];
+            _contactName = contact;
+            const CallSim::Message message = createMessage(CallSim::MessageType::Call, contact);
+            write(message);
+
+        } else {
+            std::cerr << "Unknown command. Please try again.\n";
+        }
+
+    } else if (_state->getState() == common::ClientStates::CALLING) {
+        const CallSim::Message message = createMessage(CallSim::Text, _contactName, line);
+        write(message);
+
+    } else {
+        std::cerr << "You are not registered on the server. Please, restart the application.\n";
     }
 }
 
@@ -76,6 +122,7 @@ void Client::nextState(const CallSim::MessageType msgType) {
 }
 
 void Client::handleMessage(const CallSim::Message& message) {
+    std::cout << "in handle: " << message.type() << ": " << message.payload() << "\n";
     switch (message.type()) {
         case CallSim::MessageType::Registered:
             nextState(CallSim::MessageType::Registered);
@@ -83,9 +130,15 @@ void Client::handleMessage(const CallSim::Message& message) {
         case CallSim::MessageType::Text:
             printMessage(message);
             break;
+        case CallSim::MessageType::Calling:
+            nextState(CallSim::MessageType::Calling);
+            break;
     }
 }
 
-void Client::printMessage(const CallSim::Message& message) { std::cout << message.payload() << "\n"; }
+void Client::printMessage(const CallSim::Message& message) {
+    std::cout << message.from_user() << ": ";
+    std::cout << message.payload() << "\n";
+}
 
 }  // namespace client

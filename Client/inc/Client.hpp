@@ -19,12 +19,15 @@ private:
     void stop();
 
     void readFromConsole();
+    std::vector<std::string> parseInput(const std::string& line);
+    void handleConsoleInput(const std::string& line, bool& continueReadingOut);
 
-    void write(const std::string& message);
+    void write(const CallSim::Message& message);
 
     void nextState(CallSim::MessageType msgType);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& toUser,
+                                   const std::string& msgPayload);
     CallSim::Message createRegisterMessage(std::string fromUser);
     void setTimestamp(CallSim::Message& message);
 
@@ -34,6 +37,8 @@ private:
 
     std::string _clientName;
     std::unique_ptr<IState> _state;
+
+    std::string _contactName;
 };
 
 }  // namespace client

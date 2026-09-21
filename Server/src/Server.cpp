@@ -17,6 +17,12 @@ CallSim::Message Server::handleMessage(const CallSim::Message& message, const un
     switch (message.type()) {
         case CallSim::MessageType::Register:
             return registerClient(message, clientId);
+        case CallSim::MessageType::Call:
+            return registerCall(message, clientId);
+        case CallSim::MessageType::Text:
+
+        default:
+            return createMessage(CallSim::MessageType::Text, "error");
     }
 }
 unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
@@ -30,6 +36,13 @@ unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
 }
 
 CallSim::Message Server::registerClient(const CallSim::Message& message, const unsigned int clientId) {
+    const std::string& ClientNameFromMessage = message.from_user();
+
+    if (_registeredClientNames.find(ClientNameFromMessage) != _registeredClientNames.end()) {
+        return createMessage(CallSim::MessageType::Error,
+                             "This username is already taken. Restart the app with a different name.");
+    }
+
     if (_clients.find(clientId) == _clients.end()) {
         return createMessage(CallSim::MessageType::Text);  // TODO - change type to err (will be in the next PR)
     }
@@ -37,10 +50,21 @@ CallSim::Message Server::registerClient(const CallSim::Message& message, const u
     SavedClient& client = _clients.at(clientId);
     client._name = message.from_user();
     client._state = common::ClientStates::registered;
+    client._name = ClientNameFromMessage;
+    client._state = common::ClientStates::REGISTERED;
+    _registeredClientNames.insert(ClientNameFromMessage);
 
     std::cout << "Client with ID = " << clientId << " registered with name " << client._name << "\n";
 
     return createMessage(CallSim::MessageType::Registered);
+}
+CallSim::Message Server::registerCall(const CallSim::Message& message, const unsigned int clientId) {
+    SavedClient& client = _clients.at(clientId);
+    client._state = common::ClientStates::CALLING;
+
+    std::cout << "Client with ID = " << clientId << " calling " << message.payload() << "\n";
+
+    return createMessage(CallSim::MessageType::Calling);
 }
 
 CallSim::Message Server::createMessage(const CallSim::MessageType msgType, const std::string& msgPayload) {
