@@ -1,4 +1,5 @@
 #include "Calling.hpp"
+#include "Client.hpp"
 #include "Registered.hpp"
 
 namespace client {
@@ -12,8 +13,11 @@ std::unique_ptr<IState> Calling::transition(const CallSim::MessageType& msgType)
     }
 }
 
-void Calling::enter() {
-    std::cout << "Calling...\n";
-    std::cout << "Type message to sent or \"end\" to finish the call\n";
+void Calling::enter() { std::cout << "Calling...\n"; }
+
+void Calling::handleConsoleInput(Client& client, const std::string& line) {
+    const CallSim::Message message = client.createMessage(CallSim::Text, client.getContactName(), line);
+    client.write(message);
 }
+
 }  // namespace client

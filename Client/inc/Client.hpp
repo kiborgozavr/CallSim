@@ -15,23 +15,22 @@ public:
 
     void handleMessage(const CallSim::Message& message);
 
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& toUser = "",
+                                   const std::string& msgPayload = "");
+
+    void write(const CallSim::Message& message);
+
+    [[nodiscard]] std::string& getContactName();
+    void setContactName(const std::string& contactName);
+
 private:
     void stop();
 
     void readFromConsole();
-    std::vector<std::string> parseInput(const std::string& line);
-    void handleConsoleInput(const std::string& line, bool& continueReadingOut);
-
-    void write(const CallSim::Message& message);
 
     void nextState(CallSim::MessageType msgType);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& toUser,
-                                   const std::string& msgPayload);
-    CallSim::Message createRegisterMessage(std::string fromUser);
     void setTimestamp(CallSim::Message& message);
-
-    void printMessage(const CallSim::Message& message);
 
     RwWrapper _rwWrapper;
 

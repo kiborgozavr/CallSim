@@ -30,13 +30,13 @@ private:
 
     CallSim::Message registerCall(const CallSim::Message& message, unsigned int clientId);
 
-    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload);
-    CallSim::Message createMessage(CallSim::MessageType msgType);
+    CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload = "");
     void setTimestamp(CallSim::Message& message);
 
-    void printMessage(const CallSim::Message& message, std::size_t dataSize);
-
     RwWrapper _rwWrapper;
+    std::map<std::pair<common::ClientStates, CallSim::MessageType>,
+             std::pair<common::ClientStates, std::function<CallSim::Message(const CallSim::Message&, unsigned int)>>>
+        _transitionTable;
     std::unordered_map<unsigned int, SavedClient> _clients;
     std::unordered_set<std::string> _registeredClientNames;
     unsigned int _nextClientId = 0;

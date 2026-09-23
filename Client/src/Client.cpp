@@ -4,7 +4,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <sstream>
 #include <thread>
 
 namespace client {
@@ -15,12 +14,10 @@ Client::Client(const unsigned int port, std::string clientName) :
     _state->enter();
 }
 
-Client::~Client() { stop(); }
-
 void Client::start() {
     _rwWrapper.start();
 
-    const CallSim::Message message = createRegisterMessage(_clientName);
+    const CallSim::Message message = createMessage(CallSim::MessageType::Register);
     _rwWrapper.asyncWrite(message);
 
     readFromConsole();
@@ -31,8 +28,8 @@ void Client::stop() { _rwWrapper.stop(); }
 
 void Client::write(const CallSim::Message& message) { _rwWrapper.asyncWrite(message); }
 
-CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& toUser = "",
-                                       const std::string& msgPayload = "") {
+CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& toUser,
+                                       const std::string& msgPayload) {
     CallSim::Message message;
 
     message.set_type(msgType);
@@ -44,12 +41,6 @@ CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const
     return message;
 }
 
-CallSim::Message Client::createRegisterMessage(std::string fromUser) {
-    CallSim::Message message = createMessage(CallSim::Register);
-    message.set_from_user(fromUser);
-    return message;
-}
-
 void Client::setTimestamp(CallSim::Message& message) {
     const auto now = std::chrono::system_clock::now();
     const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -58,57 +49,14 @@ void Client::setTimestamp(CallSim::Message& message) {
 
 void Client::readFromConsole() {
     std::string line;
-
     bool continueReading = true;
 
     while (continueReading) {
         std::getline(std::cin, line);
-
-        handleConsoleInput(line, continueReading);
-    }
-}
-
-std::vector<std::string> Client::parseInput(const std::string& line) {
-    std::istringstream iss(line);
-
-    std::vector<std::string> tokens;
-    std::string token;
-
-    while (iss >> token) {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-void Client::handleConsoleInput(const std::string& line, bool& continueReadingOut) {
-    if (_state->getState() == common::ClientStates::registered) {
-        const auto tokens = parseInput(line);
-
-        if (tokens.empty() || tokens.size() > 2) {
-            std::cerr << "Invalid input. Please try again.\n";
+        if (line == "exit") {
+            continueReading = false;
         }
-
-        const std::string& command = tokens[0];
-
-        if (command == "exit") {
-            continueReadingOut = false;
-
-        } else if (command == "call") {
-            const std::string& contact = tokens[1];
-            _contactName = contact;
-            const CallSim::Message message = createMessage(CallSim::MessageType::Call, contact);
-            write(message);
-
-        } else {
-            std::cerr << "Unknown command. Please try again.\n";
-        }
-
-    } else if (_state->getState() == common::ClientStates::calling) {
-        const CallSim::Message message = createMessage(CallSim::Text, _contactName, line);
-        write(message);
-
-    } else {
-        std::cerr << "You are not registered on the server. Please, restart the application.\n";
+        _state->handleConsoleInput(*this, line);
     }
 }
 
@@ -121,24 +69,12 @@ void Client::nextState(const CallSim::MessageType msgType) {
     std::cerr << "Undefined transition. Client stays in state: " << getStateName(_state->getState()) << '\n';
 }
 
-void Client::handleMessage(const CallSim::Message& message) {
-    std::cout << "in handle: " << message.type() << ": " << message.payload() << "\n";
-    switch (message.type()) {
-        case CallSim::MessageType::Registered:
-            nextState(CallSim::MessageType::Registered);
-            break;
-        case CallSim::MessageType::Text:
-            printMessage(message);
-            break;
-        case CallSim::MessageType::Calling:
-            nextState(CallSim::MessageType::Calling);
-            break;
-    }
+void Client::handleMessage(
+    const CallSim::Message& message) {  // - I left this method because MessageType::Text won't change the state
+    nextState(message.type());
 }
 
-void Client::printMessage(const CallSim::Message& message) {
-    std::cout << message.from_user() << ": ";
-    std::cout << message.payload() << "\n";
-}
+std::string& Client::getContactName() { return _contactName; }
+void Client::setContactName(const std::string& contactName) { _contactName = contactName; }
 
 }  // namespace client

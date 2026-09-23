@@ -11,5 +11,7 @@ public:
     void enter() override;
 
     [[nodiscard]] common::ClientStates getState() const override;
+
+    void handleConsoleInput(Client& client, const std::string& line) override;
 };
 }  // namespace client

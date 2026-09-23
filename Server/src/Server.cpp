@@ -2,29 +2,57 @@
 #include "Server.hpp"
 
 #include <chrono>
-#include <ctime>
 #include <iomanip>
 #include <iostream>
 
 namespace server {
 Server::Server(const unsigned int port) :
         _rwWrapper(*this, port) {
+    _transitionTable.emplace(std::make_pair(common::ClientStates::connected, CallSim::MessageType::Register),
+                             std::make_pair(common::ClientStates::registered,
+                                            [this](const CallSim::Message& message, const unsigned int clientId) {
+                                                return registerClient(message, clientId);
+                                            }));
+
+    _transitionTable.emplace(std::make_pair(common::ClientStates::registered, CallSim::MessageType::Call),
+                             std::make_pair(common::ClientStates::calling,
+                                            [this](const CallSim::Message& message, const unsigned int clientId) {
+                                                return registerCall(message, clientId);
+                                            }));
+
     std::cout << "Server started. Waiting for client...\n";
 }
 void Server::start() { _rwWrapper.start(); }
 
 CallSim::Message Server::handleMessage(const CallSim::Message& message, const unsigned int clientId) {
-    switch (message.type()) {
-        case CallSim::MessageType::Register:
-            return registerClient(message, clientId);
-        case CallSim::MessageType::Call:
-            return registerCall(message, clientId);
-        case CallSim::MessageType::Text:
+    auto clientIt = _clients.find(clientId);
 
-        default:
-            return createMessage(CallSim::MessageType::Text, "error");
+    if (clientIt == _clients.end()) {
+        return createMessage(CallSim::MessageType::Error, "Client not found!");
     }
+
+    SavedClient& client = clientIt->second;
+
+    common::ClientStates state = client._state;
+    CallSim::MessageType type = message.type();
+
+    auto transitionIt = _transitionTable.find({state, type});
+
+    if (transitionIt == _transitionTable.end()) {
+        return createMessage(CallSim::MessageType::Error, "Unknown transition!");
+    }
+
+    const auto& transition = transitionIt->second;
+    const common::ClientStates nextState = transition.first;
+    const auto& handler = transition.second;
+
+    CallSim::Message response = handler(message, clientId);
+
+    client._state = nextState;
+
+    return response;
 }
+
 unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
     unsigned int clientId = _nextClientId;
     _nextClientId++;
@@ -40,7 +68,7 @@ CallSim::Message Server::registerClient(const CallSim::Message& message, const u
 
     if (_registeredClientNames.find(ClientNameFromMessage) != _registeredClientNames.end()) {
         return createMessage(CallSim::MessageType::Error,
-                             "This username is already taken. Restart the app with a different name.");
+                             "This username is already taken. Restart the application with a different name.");
     }
 
     SavedClient& client = _clients.at(clientId);
@@ -62,18 +90,10 @@ CallSim::Message Server::registerCall(const CallSim::Message& message, const uns
 }
 
 CallSim::Message Server::createMessage(const CallSim::MessageType msgType, const std::string& msgPayload) {
-    auto message = createMessage(msgType);
-
-    message.set_payload(msgPayload);
-    setTimestamp(message);
-
-    return message;
-}
-
-CallSim::Message Server::createMessage(const CallSim::MessageType msgType) {
     CallSim::Message message;
 
     message.set_type(msgType);
+    message.set_payload(msgPayload);
     setTimestamp(message);
 
     return message;
@@ -85,12 +105,4 @@ void Server::setTimestamp(CallSim::Message& message) {
     message.set_timestamp(timestamp);
 }
 
-void Server::printMessage(const CallSim::Message& message, const std::size_t dataSize) {
-    std::cout << "Server received " << dataSize << " bytes. Type of message: " << MessageType_Name(message.type())
-              << ". Timestamp: ";
-
-    const auto time = std::chrono::system_clock::time_point{std::chrono::milliseconds(message.timestamp())};
-    const std::time_t time_t_value = std::chrono::system_clock::to_time_t(time);
-    std::cout << std::put_time(std::localtime(&time_t_value), "%Y-%m-%d %H:%M:%S") << '\n';
-}
 }  // namespace server

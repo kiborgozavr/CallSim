@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace client {
+class Client;
 
 class IState {
 public:
@@ -16,6 +17,10 @@ public:
     virtual void enter() = 0;
 
     [[nodiscard]] virtual common::ClientStates getState() const = 0;
+
+    virtual void handleConsoleInput(Client& client, const std::string& line) = 0;
+
+    std::vector<std::string> parseInput(const std::string& line);
 };
 
 }  // namespace client

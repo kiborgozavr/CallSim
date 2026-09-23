@@ -1,4 +1,5 @@
 #include "Calling.hpp"
+#include "Client.hpp"
 #include "Registered.hpp"
 
 #include <iostream>
@@ -20,5 +21,25 @@ std::unique_ptr<IState> Registered::transition(const CallSim::MessageType& msgTy
     }
 
     return nullptr;
+}
+
+void Registered::handleConsoleInput(Client& client, const std::string& line) {
+    const auto tokens = parseInput(line);
+
+    if (tokens.empty() || tokens.size() > 2) {
+        std::cerr << "Invalid input. Please try again.\n";
+    }
+
+    if (tokens[0] == "call") {
+        const std::string& contact = tokens[1];
+        client.setContactName(contact);
+
+        const CallSim::Message message = client.createMessage(CallSim::MessageType::Call, contact);
+
+        client.write(message);
+
+    } else {
+        std::cerr << "Unknown command. Please try again.\n";
+    }
 }
 }  // namespace client

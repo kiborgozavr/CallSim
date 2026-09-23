@@ -11,6 +11,7 @@ add_executable(Client
         inc/Registered.hpp
         src/Calling.cpp
         inc/Calling.hpp
+        src/IState.cpp
 )
 
 target_include_directories(Client PRIVATE
