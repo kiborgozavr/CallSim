@@ -5,9 +5,9 @@ namespace client {
 
 class Connected : public IState {
 public:
-    std::unique_ptr<IState> transition(const CallSim::MessageType& msgType) override;
+    std::unique_ptr<IState> transition(const CallSim::Message& message) override;
 
-    void enter() override;
+    void enter(const CallSim::Message& message) override;
 
     [[nodiscard]] common::ClientStates getState() const override;
 

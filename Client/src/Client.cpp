@@ -10,9 +10,7 @@ namespace client {
 Client::Client(const unsigned int port, std::string clientName) :
         _rwWrapper(*this, port),
         _clientName(std::move(clientName)),
-        _state(std::make_unique<Connected>()) {
-    _state->enter();
-}
+        _state(std::make_unique<Connected>()) {}
 
 void Client::start() {
     _rwWrapper.start();
@@ -27,6 +25,17 @@ void Client::start() {
 void Client::stop() { _rwWrapper.stop(); }
 
 void Client::write(const CallSim::Message& message) { _rwWrapper.asyncWrite(message); }
+
+void Client::acceptCall() {
+    const CallSim::Message message = createMessage(CallSim::MessageType::Accept, _contactName);
+    write(message);
+}
+
+void Client::rejectCall() {
+    const CallSim::Message message = createMessage(CallSim::MessageType::Reject, _contactName);
+    write(message);
+    _clientName = "";
+}
 
 CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& toUser,
                                        const std::string& msgPayload) {
@@ -60,18 +69,20 @@ void Client::readFromConsole() {
     }
 }
 
-void Client::nextState(const CallSim::MessageType msgType) {
-    if (auto newState = _state->transition(msgType); newState) {
+void Client::nextState(const CallSim::Message& message) {
+    if (auto newState = _state->transition(message); newState) {
         _state = std::move(newState);
-        _state->enter();
+        _state->enter(message);
         return;
     }
     std::cerr << "Undefined transition. Client stays in state: " << getStateName(_state->getState()) << '\n';
 }
 
-void Client::handleMessage(
-    const CallSim::Message& message) {  // - I left this method because MessageType::Text won't change the state
-    nextState(message.type());
+void Client::handleMessage(const CallSim::Message& message) {
+    if (message.type() == CallSim::MessageType::Answering) {
+        this->_contactName = message.from_user();
+    }
+    nextState(message);
 }
 
 std::string& Client::getContactName() { return _contactName; }

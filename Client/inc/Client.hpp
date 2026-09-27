@@ -9,8 +9,6 @@ class Client {
 public:
     explicit Client(unsigned int port, std::string clientName);
 
-    ~Client();
-
     void start();
 
     void handleMessage(const CallSim::Message& message);
@@ -20,6 +18,9 @@ public:
 
     void write(const CallSim::Message& message);
 
+    void acceptCall();
+    void rejectCall();
+
     [[nodiscard]] std::string& getContactName();
     void setContactName(const std::string& contactName);
 
@@ -28,7 +29,7 @@ private:
 
     void readFromConsole();
 
-    void nextState(CallSim::MessageType msgType);
+    void nextState(const CallSim::Message& message);
 
     void setTimestamp(CallSim::Message& message);
 

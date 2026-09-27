@@ -7,6 +7,8 @@ enum class ClientStates {
     connected,
     registered,
     calling,
+    answering,
+    talking,
 };
 
 constexpr std::string_view getStateName(const ClientStates state) {
@@ -17,6 +19,10 @@ constexpr std::string_view getStateName(const ClientStates state) {
             return "Registered";
         case ClientStates::calling:
             return "Calling";
+        case ClientStates::answering:
+            return "Answering";
+        case ClientStates::talking:
+            return "Talking";
     }
 
     return "Unknown";

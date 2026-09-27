@@ -12,9 +12,9 @@ class IState {
 public:
     virtual ~IState() = default;
 
-    virtual std::unique_ptr<IState> transition(const CallSim::MessageType& msgType) = 0;
+    virtual std::unique_ptr<IState> transition(const CallSim::Message& message) = 0;
 
-    virtual void enter() = 0;
+    virtual void enter(const CallSim::Message& message) = 0;
 
     [[nodiscard]] virtual common::ClientStates getState() const = 0;
 

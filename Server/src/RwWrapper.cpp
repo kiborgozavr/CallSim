@@ -33,7 +33,13 @@ void RwWrapper::acceptClient() {
         asyncRead(socket, clientId);
     });
 }
-void RwWrapper::asyncRead(std::shared_ptr<tcp::socket> socket, unsigned int clientId) {
+
+void RwWrapper::putTaskInContext(SavedClient& client, const CallSim::Message& message,
+                                 std::function<void(SavedClient&, const CallSim::Message&)> function) {
+    boost::asio::post(_ioContext, [&client, message, function]() { function(client, message); });
+}
+
+void RwWrapper::asyncRead(std::shared_ptr<tcp::socket> socket, const unsigned int clientId) {
     auto size = std::make_shared<std::uint32_t>();
 
     boost::asio::async_read(*socket,
@@ -47,7 +53,8 @@ void RwWrapper::asyncRead(std::shared_ptr<tcp::socket> socket, unsigned int clie
                                 asyncReadMessage(socket, *size, clientId);
                             });
 }
-void RwWrapper::asyncReadMessage(std::shared_ptr<tcp::socket> socket, const std::uint32_t size, unsigned int clientId) {
+void RwWrapper::asyncReadMessage(std::shared_ptr<tcp::socket> socket, const std::uint32_t size,
+                                 const unsigned int clientId) {
     auto data = std::make_shared<std::string>(size, '\0');
 
     boost::asio::async_read(*socket,
@@ -65,12 +72,12 @@ void RwWrapper::asyncReadMessage(std::shared_ptr<tcp::socket> socket, const std:
                                     std::cerr << "Failed to parse protobuf message\n";
                                     return;
                                 }
-
-                                const CallSim::Message responseMessage = _server.handleMessage(message, clientId);
-                                asyncWrite(socket, responseMessage, clientId);
+                                _server.handleMessage(message, clientId);
+                                asyncRead(socket, clientId);
                             });
 }
-void RwWrapper::asyncWrite(std::shared_ptr<tcp::socket> socket, const CallSim::Message message, unsigned int clientId) {
+void RwWrapper::asyncWrite(std::shared_ptr<tcp::socket> socket, const CallSim::Message& message,
+                           const unsigned int clientId) {
     std::string data;
 
     if (!message.SerializeToString(&data)) {
@@ -90,10 +97,7 @@ void RwWrapper::asyncWrite(std::shared_ptr<tcp::socket> socket, const CallSim::M
         [this, buffer, data, socket, clientId](const boost::system::error_code& errorCode, std::size_t) {
             if (errorCode) {
                 std::cerr << "Write error: " << errorCode.message() << '\n';
-                return;
             }
-            std::cout << "Server sent " << data.size() << " bytes" << '\n';
-            asyncRead(socket, clientId);
         });
 }
 }  // namespace server
