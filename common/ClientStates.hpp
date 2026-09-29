@@ -14,15 +14,15 @@ enum class ClientStates {
 constexpr std::string_view getStateName(const ClientStates state) {
     switch (state) {
         case ClientStates::connected:
-            return "Connected";
+            return "CONNECTED";
         case ClientStates::registered:
-            return "Registered";
+            return "REGISTERED";
         case ClientStates::calling:
-            return "Calling";
+            return "CALLING";
         case ClientStates::answering:
-            return "Answering";
+            return "ANSWERING";
         case ClientStates::talking:
-            return "Talking";
+            return "TALKING";
     }
 
     return "Unknown";

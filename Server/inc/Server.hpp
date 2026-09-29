@@ -25,29 +25,35 @@ public:
     void start();
 
     void handleMessage(const CallSim::Message& message, unsigned int clientId);
+    void handleMessage(SavedClient& client, const CallSim::Message& message);
 
     unsigned int saveClient(std::shared_ptr<tcp::socket> socket);
 
     void checkAddresseePresence(SavedClient& client, const CallSim::Message& message);
 
 private:
-    void registerClient(SavedClient& client, const CallSim::Message& message, unsigned int clientId);
+    void registerClient(SavedClient& client, const CallSim::Message& message);
 
-    void registerCall(SavedClient& client, const CallSim::Message& message, unsigned int clientId);
+    void registerCall(SavedClient& client, const CallSim::Message& message);
 
-    void handleRejectCall(const SavedClient& client, const CallSim::Message& message, unsigned int clientId);
-    void handleAcceptCall(const SavedClient& client, const CallSim::Message& message, unsigned int clientId);
+    void handleRejectCall(const SavedClient& client, const CallSim::Message& message);
+    void handleAcceptCall(const SavedClient& client, const CallSim::Message& message);
 
     std::optional<std::reference_wrapper<SavedClient>> findClient(unsigned int clientId);
     std::optional<std::reference_wrapper<SavedClient>> findClient(const std::string& clientName);
 
+    void writeMessage(SavedClient& client, const CallSim::Message& message);
+
     CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload = "",
                                    const std::string& fromUser = "");
-    void setTimestamp(CallSim::Message& message);
+    void printTimestamp(const CallSim::Message& message);
+    void printTimestamp(const std::chrono::system_clock::time_point& timePoint);
+    void printLog(const SavedClient& client, const CallSim::Message& message);
+    void printLog(const SavedClient& client);
 
     RwWrapper _rwWrapper;
     std::map<std::pair<common::ClientStates, CallSim::MessageType>,
-             std::pair<common::ClientStates, std::function<void(SavedClient&, const CallSim::Message&, unsigned int)>>>
+             std::pair<common::ClientStates, std::function<void(SavedClient&, const CallSim::Message&)>>>
         _transitionTable;
     std::unordered_map<unsigned int, SavedClient> _clients;
     std::unordered_set<std::string> _registeredClientNames;
