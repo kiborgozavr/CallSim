@@ -2,12 +2,16 @@
 #include "Client.hpp"
 #include "ClientStates.hpp"
 #include "Registered.hpp"
+#include "Talking.hpp"
 
 namespace client {
 
 std::unique_ptr<IState> Answering::transition(const CallSim::Message& message) {
     if (message.type() == CallSim::MessageType::Rejected) {
         return std::make_unique<Registered>();
+    }
+    if (message.type() == CallSim::MessageType::Accepted) {
+        return std::make_unique<Talking>();
     }
     return nullptr;
 }

@@ -50,6 +50,24 @@ Server::Server(const unsigned int port) :
             handleAcceptCall(client, message);
         }));
 
+    _transitionTable.emplace(
+        std::make_pair(common::ClientStates::talking, CallSim::MessageType::Text),
+        std::make_pair(common::ClientStates::talking, [this](SavedClient& client, const CallSim::Message& message) {
+            resendMessage(client, message);
+        }));
+
+    _transitionTable.emplace(
+        std::make_pair(common::ClientStates::talking, CallSim::MessageType::End),
+        std::make_pair(common::ClientStates::registered, [this](SavedClient& client, const CallSim::Message& message) {
+            handleFinishCall(client, message);
+        }));
+
+    _transitionTable.emplace(
+        std::make_pair(common::ClientStates::talking, CallSim::MessageType::Ended),
+        std::make_pair(common::ClientStates::registered, [this](SavedClient& client, const CallSim::Message& message) {
+            writeMessage(client, message);
+        }));
+
     std::cout << "Server started. Waiting for client...\n";
 }
 void Server::start() { _rwWrapper.start(); }
@@ -99,9 +117,9 @@ void Server::checkAddresseePresence(SavedClient& client, const CallSim::Message&
     const std::string& addresseeName = message.to_user();
     if (addresseeName == message.from_user()) {
         _rwWrapper.putTaskInContext(
-            client, createMessage(CallSim::MessageType::Rejected, "You cannot call yourself\n"), [this](SavedClient& client, const CallSim::Message& responseMsg) {
-                handleMessage(client, responseMsg);
-            });
+            client,
+            createMessage(CallSim::MessageType::Rejected, "You cannot call yourself\n"),
+            [this](SavedClient& client, const CallSim::Message& responseMsg) { handleMessage(client, responseMsg); });
         return;
     }
 
@@ -167,9 +185,9 @@ void Server::handleRejectCall(const SavedClient& client, const CallSim::Message&
     SavedClient& addressee = addresseeOptional->get();
 
     _rwWrapper.putTaskInContext(
-        addressee,  createMessage(CallSim::Rejected, "The call was rejected"), [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
-            handleMessage(addressee, responseMsg);
-        });
+        addressee,
+        createMessage(CallSim::Rejected, "The call was rejected"),
+        [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
 
     _rwWrapper.asyncWrite(client._socket, createMessage(CallSim::Rejected, "The call was rejected"), client._clientId);
 }
@@ -185,10 +203,49 @@ void Server::handleAcceptCall(const SavedClient& client, const CallSim::Message&
     }
 
     SavedClient& addressee = addresseeOptional->get();
+    _rwWrapper.putTaskInContext(
+        addressee,
+        createMessage(CallSim::Accepted, "", client._name),
+        [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
 
-    _rwWrapper.putTaskInContext(addressee,
-                                createMessage(CallSim::Accepted, "", client._name),
-                                [this](SavedClient& addressee, const CallSim::Message& responseMsg) {handleMessage(addressee, responseMsg);});
+    _rwWrapper.asyncWrite(
+        client._socket, createMessage(CallSim::MessageType::Accepted, "", addresseeName), client._clientId);
+}
+
+void Server::handleFinishCall(const SavedClient& client, const CallSim::Message& message) {
+    const std::string& addresseeName = message.to_user();
+    const auto addresseeOptional = findClient(addresseeName);
+
+    if (!addresseeOptional) {
+        printTimestamp(std::chrono::system_clock::now());
+        std::cout << "Client with name " << addresseeName << " is not found\n";
+        return;
+    }
+
+    SavedClient& addressee = addresseeOptional->get();
+    _rwWrapper.putTaskInContext(
+        addressee,
+        createMessage(CallSim::Ended, "The call was finished by another user", client._name),
+        [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
+
+    _rwWrapper.asyncWrite(client._socket,
+                          createMessage(CallSim::Ended, "The call was finished by another user", addresseeName),
+                          client._clientId);
+}
+
+void Server::resendMessage(const SavedClient& client, const CallSim::Message& message) {
+    const std::string& addresseeName = message.to_user();
+    const auto addresseeOptional = findClient(addresseeName);
+
+    if (!addresseeOptional) {
+        printTimestamp(std::chrono::system_clock::now());
+        std::cout << "Client with name " << addresseeName << " is not found\n";
+        return;
+    }
+
+    const SavedClient& addressee = addresseeOptional->get();
+    _rwWrapper.asyncWrite(
+        addressee._socket, createMessage(CallSim::Text, message.payload(), client._name), addressee._clientId);
 }
 
 std::optional<std::reference_wrapper<SavedClient>> Server::findClient(const unsigned int clientId) {

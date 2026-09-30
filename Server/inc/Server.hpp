@@ -38,6 +38,8 @@ private:
 
     void handleRejectCall(const SavedClient& client, const CallSim::Message& message);
     void handleAcceptCall(const SavedClient& client, const CallSim::Message& message);
+    void handleFinishCall(const SavedClient& client, const CallSim::Message& message);
+    void resendMessage(const SavedClient& client, const CallSim::Message& message);
 
     std::optional<std::reference_wrapper<SavedClient>> findClient(unsigned int clientId);
     std::optional<std::reference_wrapper<SavedClient>> findClient(const std::string& clientName);

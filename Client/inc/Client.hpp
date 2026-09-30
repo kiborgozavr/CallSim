@@ -20,6 +20,7 @@ public:
 
     void acceptCall();
     void rejectCall();
+    void finishCall();
 
     [[nodiscard]] std::string& getContactName();
     void setContactName(const std::string& contactName);

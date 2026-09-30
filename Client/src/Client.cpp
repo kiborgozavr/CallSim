@@ -36,6 +36,11 @@ void Client::rejectCall() {
     write(message);
     _clientName = "";
 }
+void Client::finishCall() {
+    const CallSim::Message message = createMessage(CallSim::MessageType::End, _contactName);
+    write(message);
+    _contactName = "";
+}
 
 CallSim::Message Client::createMessage(const CallSim::MessageType msgType, const std::string& toUser,
                                        const std::string& msgPayload) {
@@ -60,7 +65,7 @@ void Client::readFromConsole() {
     std::string line;
     bool continueReading = true;
 
-    while (continueReading) {
+    while (std::cout << ">>> ", continueReading) {
         std::getline(std::cin, line);
         if (line == "exit") {
             continueReading = false;
@@ -82,6 +87,14 @@ void Client::handleMessage(const CallSim::Message& message) {
     if (message.type() == CallSim::MessageType::Answering) {
         this->_contactName = message.from_user();
     }
+    if (message.type() == CallSim::MessageType::Ended) {
+        this->_contactName = "";
+    }
+    if (message.type() == CallSim::MessageType::Text) {
+        std::cout << message.from_user() << ": " << message.payload() << '\n';
+        return;
+    }
+
     nextState(message);
 }
 
