@@ -62,12 +62,6 @@ Server::Server(const unsigned int port) :
             handleFinishCall(client, message);
         }));
 
-    _transitionTable.emplace(
-        std::make_pair(common::ClientStates::talking, CallSim::MessageType::Ended),
-        std::make_pair(common::ClientStates::registered, [this](SavedClient& client, const CallSim::Message& message) {
-            writeMessage(client, message);
-        }));
-
     std::cout << "Server started. Waiting for client...\n";
 }
 void Server::start() { _rwWrapper.start(); }
@@ -107,13 +101,13 @@ void Server::handleMessage(SavedClient& client, const CallSim::Message& message)
 
     const auto& [nextState, handler] = transitionIterator->second;
 
+    handler(client, message);
+
     client._state = nextState;
     printLog(client, message);
-
-    handler(client, message);
 }
 
-void Server::checkAddresseePresence(SavedClient& client, const CallSim::Message& message) {
+void Server::checkAddressee(SavedClient& client, const CallSim::Message& message) {
     const std::string& addresseeName = message.to_user();
     if (addresseeName == message.from_user()) {
         _rwWrapper.putTaskInContext(
@@ -138,12 +132,28 @@ void Server::checkAddresseePresence(SavedClient& client, const CallSim::Message&
     }
 
     SavedClient& addressee = addresseeOptional->get();
-    const auto responseMsg = createMessage(CallSim::MessageType::Answering, "", client._name);
 
-    _rwWrapper.putTaskInContext(
-        addressee, responseMsg, [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
-            handleMessage(addressee, responseMsg);
-        });
+    if (isAddresseeInRegisteredState(addressee)) {
+        const auto responseMsg = createMessage(CallSim::MessageType::Answering, "", client._name);
+
+        _rwWrapper.putTaskInContext(
+            addressee, responseMsg, [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
+                handleMessage(addressee, responseMsg);
+            });
+    } else {
+        auto responseMsg = createMessage(CallSim::MessageType::Rejected, "Addressee is not available in the moment\n");
+        _rwWrapper.putTaskInContext(
+            client, responseMsg, [this](SavedClient& client, const CallSim::Message& responseMsg) {
+                handleMessage(client, responseMsg);
+            });
+    }
+}
+
+bool Server::isAddresseeInRegisteredState(const SavedClient& addressee) {
+    if (addressee._state == common::ClientStates::registered) {
+        return true;
+    }
+    return false;
 }
 
 void Server::registerClient(SavedClient& client, const CallSim::Message& message) {
@@ -152,7 +162,7 @@ void Server::registerClient(SavedClient& client, const CallSim::Message& message
     if (_registeredClientNames.find(ClientNameFromMessage) != _registeredClientNames.end()) {
         _rwWrapper.asyncWrite(
             client._socket,
-            createMessage(CallSim::MessageType::Error,
+            createMessage(CallSim::MessageType::Rejected,
                           "This username is already taken. Restart the application with a different name.\n"),
             client._clientId);
         return;
@@ -168,7 +178,7 @@ void Server::registerCall(SavedClient& client, const CallSim::Message& message) 
     _rwWrapper.asyncWrite(client._socket, createMessage(CallSim::MessageType::Calling), client._clientId);
 
     _rwWrapper.putTaskInContext(client, message, [this](SavedClient& client, const CallSim::Message& message) {
-        checkAddresseePresence(client, message);
+        checkAddressee(client, message);
     });
 }
 
@@ -213,24 +223,33 @@ void Server::handleAcceptCall(const SavedClient& client, const CallSim::Message&
 }
 
 void Server::handleFinishCall(const SavedClient& client, const CallSim::Message& message) {
-    const std::string& addresseeName = message.to_user();
-    const auto addresseeOptional = findClient(addresseeName);
+    if (client._name == message.from_user()) {
+        _rwWrapper.asyncWrite(client._socket,
+                              createMessage(CallSim::Ended, "The call was finished", message.from_user()),
+                              client._clientId);
 
-    if (!addresseeOptional) {
-        printTimestamp(std::chrono::system_clock::now());
-        std::cout << "Client with name " << addresseeName << " is not found\n";
-        return;
+        const std::string& addresseeName = message.to_user();
+        const auto addresseeOptional = findClient(addresseeName);
+
+        if (!addresseeOptional) {
+            printTimestamp(std::chrono::system_clock::now());
+            std::cout << "Client with name " << addresseeName << " is not found\n";
+            return;
+        }
+
+        SavedClient& addressee = addresseeOptional->get();
+        _rwWrapper.putTaskInContext(
+            addressee, message, [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
+                handleMessage(addressee, responseMsg);
+            });
     }
 
-    SavedClient& addressee = addresseeOptional->get();
-    _rwWrapper.putTaskInContext(
-        addressee,
-        createMessage(CallSim::Ended, "The call was finished by another user", client._name),
-        [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
-
-    _rwWrapper.asyncWrite(client._socket,
-                          createMessage(CallSim::Ended, "The call was finished by another user", addresseeName),
-                          client._clientId);
+    if (client._name == message.to_user()) {
+        _rwWrapper.asyncWrite(
+            client._socket,
+            createMessage(CallSim::Ended, "The call was finished by another user", message.from_user()),
+            client._clientId);
+    }
 }
 
 void Server::resendMessage(const SavedClient& client, const CallSim::Message& message) {
@@ -278,6 +297,10 @@ CallSim::Message Server::createMessage(const CallSim::MessageType msgType, const
     message.set_type(msgType);
     message.set_payload(msgPayload);
     message.set_from_user(fromUser);
+
+    const auto now = std::chrono::system_clock::now();
+    const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    message.set_timestamp(timestamp);
 
     return message;
 }

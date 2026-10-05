@@ -29,7 +29,7 @@ public:
 
     unsigned int saveClient(std::shared_ptr<tcp::socket> socket);
 
-    void checkAddresseePresence(SavedClient& client, const CallSim::Message& message);
+    void checkAddressee(SavedClient& client, const CallSim::Message& message);
 
 private:
     void registerClient(SavedClient& client, const CallSim::Message& message);
@@ -43,6 +43,8 @@ private:
 
     std::optional<std::reference_wrapper<SavedClient>> findClient(unsigned int clientId);
     std::optional<std::reference_wrapper<SavedClient>> findClient(const std::string& clientName);
+
+    bool isAddresseeInRegisteredState(const SavedClient& addressee);
 
     void writeMessage(SavedClient& client, const CallSim::Message& message);
 
