@@ -1,6 +1,6 @@
-#include "RwWrapper.hpp"
 #include "Client.hpp"
 #include "Message.pb.h"
+#include "RwWrapper.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -53,6 +53,10 @@ void RwWrapper::asyncRead() {
                             boost::asio::buffer(size.get(), sizeof(*size)),
                             [this, size](const boost::system::error_code& errorCode, std::size_t) {
                                 if (errorCode) {
+                                    if (errorCode == boost::asio::error::operation_aborted) {
+                                        return;
+                                    }
+
                                     std::cerr << "Read size error: " << errorCode.message() << '\n';
                                     return;
                                 }
@@ -66,6 +70,9 @@ void RwWrapper::asyncReadMessage(const std::uint32_t size) {
     boost::asio::async_read(
         _socket, boost::asio::buffer(*data), [this, data](const boost::system::error_code& errorCode, std::size_t) {
             if (errorCode) {
+                if (errorCode == boost::asio::error::operation_aborted) {
+                    return;
+                }
                 std::cerr << "Read message error: " << errorCode.message() << '\n';
                 return;
             }

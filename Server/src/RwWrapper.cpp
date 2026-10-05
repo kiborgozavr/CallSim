@@ -45,6 +45,10 @@ void RwWrapper::asyncRead(std::shared_ptr<tcp::socket> socket, const unsigned in
     boost::asio::async_read(*socket,
                             boost::asio::buffer(size.get(), sizeof(*size)),
                             [this, size, socket, clientId](const boost::system::error_code& errorCode, std::size_t) {
+                                if (errorCode == boost::asio::error::eof) {
+                                    _server.handleClientDisconnected(clientId);
+                                    return;
+                                }
                                 if (errorCode) {
                                     std::cerr << "Read size error: " << errorCode.message() << '\n';
                                     asyncRead(socket, clientId);
@@ -60,6 +64,10 @@ void RwWrapper::asyncReadMessage(std::shared_ptr<tcp::socket> socket, const std:
     boost::asio::async_read(*socket,
                             boost::asio::buffer(*data),
                             [this, data, socket, clientId](const boost::system::error_code& errorCode, std::size_t) {
+                                if (errorCode == boost::asio::error::eof) {
+                                    _server.handleClientDisconnected(clientId);
+                                    return;
+                                }
                                 if (errorCode) {
                                     std::cerr << "Read message error: " << errorCode.message() << '\n';
                                     asyncRead(socket, clientId);

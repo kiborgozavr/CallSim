@@ -106,6 +106,23 @@ void Server::handleMessage(SavedClient& client, const CallSim::Message& message)
     client._state = nextState;
     printLog(client, message);
 }
+void Server::handleClientDisconnected(const unsigned int clientId) {
+    const auto clientOptional = findClient(clientId);
+
+    if (!clientOptional.has_value()) {
+        printTimestamp(std::chrono::system_clock::now());
+        std::cerr << "Client with ID = " << clientId << " not found";
+        return;
+    }
+
+    SavedClient& client = clientOptional->get();
+
+    printTimestamp(std::chrono::system_clock::now());
+    std::cout << "Client with ID = " << clientId << " and name " << client._name <<" disconnected\n";
+
+    _clients.erase(clientId);
+    _registeredClientNames.erase(client._name);
+}
 
 void Server::checkAddressee(SavedClient& client, const CallSim::Message& message) {
     const std::string& addresseeName = message.to_user();
@@ -133,7 +150,7 @@ void Server::checkAddressee(SavedClient& client, const CallSim::Message& message
 
     SavedClient& addressee = addresseeOptional->get();
 
-    if (isAddresseeInRegisteredState(addressee)) {
+    if (addressee._state == common::ClientStates::registered) {
         const auto responseMsg = createMessage(CallSim::MessageType::Answering, "", client._name);
 
         _rwWrapper.putTaskInContext(
@@ -147,13 +164,6 @@ void Server::checkAddressee(SavedClient& client, const CallSim::Message& message
                 handleMessage(client, responseMsg);
             });
     }
-}
-
-bool Server::isAddresseeInRegisteredState(const SavedClient& addressee) {
-    if (addressee._state == common::ClientStates::registered) {
-        return true;
-    }
-    return false;
 }
 
 void Server::registerClient(SavedClient& client, const CallSim::Message& message) {
@@ -286,7 +296,7 @@ std::optional<std::reference_wrapper<SavedClient>> Server::findClient(const std:
     return std::nullopt;
 }
 
-void Server::writeMessage(SavedClient& client, const CallSim::Message& message) {
+void Server::writeMessage(const SavedClient& client, const CallSim::Message& message) {
     _rwWrapper.asyncWrite(client._socket, message, client._clientId);
 }
 

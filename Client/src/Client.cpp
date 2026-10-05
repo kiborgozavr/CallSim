@@ -64,12 +64,11 @@ void Client::setTimestamp(CallSim::Message& message) {
 
 void Client::readFromConsole() {
     std::string line;
-    bool continueReading = true;
 
-    while (continueReading) {
+    while (true) {
         std::getline(std::cin, line);
         if (line == "exit") {
-            continueReading = false;
+            break;
         }
         _state->handleConsoleInput(line);
     }

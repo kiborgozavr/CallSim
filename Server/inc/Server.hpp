@@ -26,6 +26,7 @@ public:
 
     void handleMessage(const CallSim::Message& message, unsigned int clientId);
     void handleMessage(SavedClient& client, const CallSim::Message& message);
+    void handleClientDisconnected(unsigned int clientId);
 
     unsigned int saveClient(std::shared_ptr<tcp::socket> socket);
 
@@ -44,9 +45,7 @@ private:
     std::optional<std::reference_wrapper<SavedClient>> findClient(unsigned int clientId);
     std::optional<std::reference_wrapper<SavedClient>> findClient(const std::string& clientName);
 
-    bool isAddresseeInRegisteredState(const SavedClient& addressee);
-
-    void writeMessage(SavedClient& client, const CallSim::Message& message);
+    void writeMessage(const SavedClient& client, const CallSim::Message& message);
 
     CallSim::Message createMessage(CallSim::MessageType msgType, const std::string& msgPayload = "",
                                    const std::string& fromUser = "");
