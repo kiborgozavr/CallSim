@@ -1,6 +1,7 @@
 #include "Client.hpp"
 #include "Connected.hpp"
 #include "Message.pb.h"
+#include "StateFactory.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -10,7 +11,7 @@ namespace client {
 Client::Client(const unsigned int port, std::string clientName) :
         _rwWrapper(*this, port),
         _clientName(std::move(clientName)),
-        _state(std::make_unique<Connected>()) {}
+        _state(std::make_unique<Connected>(*this)) {}
 
 void Client::start() {
     _rwWrapper.start();
@@ -65,18 +66,19 @@ void Client::readFromConsole() {
     std::string line;
     bool continueReading = true;
 
-    while (std::cout << ">>> ", continueReading) {
+    while (continueReading) {
         std::getline(std::cin, line);
         if (line == "exit") {
             continueReading = false;
         }
-        _state->handleConsoleInput(*this, line);
+        _state->handleConsoleInput(line);
     }
 }
 
 void Client::nextState(const CallSim::Message& message) {
-    if (auto newState = _state->transition(message); newState) {
-        _state = std::move(newState);
+    if (const auto newState = _state->transition(message); newState != _state->getState()) {
+        _state = nullptr;
+        _state = _stateFactory.getState(*this, newState);
         _state->enter(message);
         return;
     }

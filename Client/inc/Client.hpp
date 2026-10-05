@@ -3,6 +3,7 @@
 #include "IState.hpp"
 #include "Message.pb.h"
 #include "RwWrapper.hpp"
+#include "StateFactory.hpp"
 
 namespace client {
 class Client {
@@ -35,6 +36,7 @@ private:
     void setTimestamp(CallSim::Message& message);
 
     RwWrapper _rwWrapper;
+    StateFactory _stateFactory;
 
     std::string _clientName;
     std::unique_ptr<IState> _state;

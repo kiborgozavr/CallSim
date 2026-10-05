@@ -16,6 +16,8 @@ add_executable(Client
         src/Answering.cpp
         src/Talking.cpp
         inc/Talking.hpp
+        src/StateFactory.cpp
+        inc/StateFactory.hpp
 )
 
 target_include_directories(Client PRIVATE
