@@ -25,8 +25,10 @@ add_executable(ServerTest
         inc/Server.hpp
 
         src/Server.cpp
+        src/RwWrapper.cpp
 
         test/MockRwWrapper.hpp
+        test/ServerTest.cpp
 )
 
 target_include_directories(ServerTest PRIVATE

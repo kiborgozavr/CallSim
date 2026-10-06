@@ -6,8 +6,13 @@
 #include <iostream>
 
 namespace server {
-Server::Server(const unsigned int port) :
-        _rwWrapper(*this, port) {
+Server::Server(unsigned int port) :
+        _rwWrapper(std::make_unique<RwWrapper>(*this, port)) {}
+
+Server::Server(std::unique_ptr<IRwWrapper> rwWrapper) :
+          _rwWrapper(std::move(rwWrapper)) {}
+
+void Server::fillTransitionTable() {
     _transitionTable.emplace(
         std::make_pair(common::ClientStates::connected, CallSim::MessageType::Register),
         std::make_pair(common::ClientStates::registered, [this](SavedClient& client, const CallSim::Message& message) {
@@ -61,10 +66,14 @@ Server::Server(const unsigned int port) :
         std::make_pair(common::ClientStates::registered, [this](SavedClient& client, const CallSim::Message& message) {
             handleFinishCall(client, message);
         }));
+}
+
+void Server::start() {
+    fillTransitionTable();
+    _rwWrapper->start();
 
     std::cout << "Server started. Waiting for client...\n";
 }
-void Server::start() { _rwWrapper.start(); }
 
 unsigned int Server::saveClient(std::shared_ptr<tcp::socket> socket) {
     unsigned int clientId = _nextClientId;
@@ -118,7 +127,7 @@ void Server::handleClientDisconnected(const unsigned int clientId) {
     SavedClient& client = clientOptional->get();
 
     printTimestamp(std::chrono::system_clock::now());
-    std::cout << "Client with ID = " << clientId << " and name " << client._name <<" disconnected\n";
+    std::cout << "Client with ID = " << clientId << " and name " << client._name << " disconnected\n";
 
     _clients.erase(clientId);
     _registeredClientNames.erase(client._name);
@@ -127,7 +136,7 @@ void Server::handleClientDisconnected(const unsigned int clientId) {
 void Server::checkAddressee(SavedClient& client, const CallSim::Message& message) {
     const std::string& addresseeName = message.to_user();
     if (addresseeName == message.from_user()) {
-        _rwWrapper.putTaskInContext(
+        _rwWrapper->putTaskInContext(
             client,
             createMessage(CallSim::MessageType::Rejected, "You cannot call yourself\n"),
             [this](SavedClient& client, const CallSim::Message& responseMsg) { handleMessage(client, responseMsg); });
@@ -141,7 +150,7 @@ void Server::checkAddressee(SavedClient& client, const CallSim::Message& message
 
         auto responseMsg =
             createMessage(CallSim::MessageType::Rejected, "Addressee with such name is not registered\n");
-        _rwWrapper.putTaskInContext(
+        _rwWrapper->putTaskInContext(
             client, responseMsg, [this](SavedClient& client, const CallSim::Message& responseMsg) {
                 handleMessage(client, responseMsg);
             });
@@ -153,13 +162,13 @@ void Server::checkAddressee(SavedClient& client, const CallSim::Message& message
     if (addressee._state == common::ClientStates::registered) {
         const auto responseMsg = createMessage(CallSim::MessageType::Answering, "", client._name);
 
-        _rwWrapper.putTaskInContext(
+        _rwWrapper->putTaskInContext(
             addressee, responseMsg, [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
                 handleMessage(addressee, responseMsg);
             });
     } else {
         auto responseMsg = createMessage(CallSim::MessageType::Rejected, "Addressee is not available in the moment\n");
-        _rwWrapper.putTaskInContext(
+        _rwWrapper->putTaskInContext(
             client, responseMsg, [this](SavedClient& client, const CallSim::Message& responseMsg) {
                 handleMessage(client, responseMsg);
             });
@@ -170,7 +179,7 @@ void Server::registerClient(SavedClient& client, const CallSim::Message& message
     const std::string& ClientNameFromMessage = message.from_user();
 
     if (_registeredClientNames.find(ClientNameFromMessage) != _registeredClientNames.end()) {
-        _rwWrapper.asyncWrite(
+        _rwWrapper->asyncWrite(
             client._socket,
             createMessage(CallSim::MessageType::Rejected,
                           "This username is already taken. Restart the application with a different name.\n"),
@@ -181,13 +190,13 @@ void Server::registerClient(SavedClient& client, const CallSim::Message& message
     client._name = ClientNameFromMessage;
     _registeredClientNames.insert(ClientNameFromMessage);
 
-    _rwWrapper.asyncWrite(client._socket, createMessage(CallSim::MessageType::Registered), client._clientId);
+    _rwWrapper->asyncWrite(client._socket, createMessage(CallSim::MessageType::Registered), client._clientId);
 }
 
 void Server::registerCall(SavedClient& client, const CallSim::Message& message) {
-    _rwWrapper.asyncWrite(client._socket, createMessage(CallSim::MessageType::Calling), client._clientId);
+    _rwWrapper->asyncWrite(client._socket, createMessage(CallSim::MessageType::Calling), client._clientId);
 
-    _rwWrapper.putTaskInContext(client, message, [this](SavedClient& client, const CallSim::Message& message) {
+    _rwWrapper->putTaskInContext(client, message, [this](SavedClient& client, const CallSim::Message& message) {
         checkAddressee(client, message);
     });
 }
@@ -204,12 +213,12 @@ void Server::handleRejectCall(const SavedClient& client, const CallSim::Message&
 
     SavedClient& addressee = addresseeOptional->get();
 
-    _rwWrapper.putTaskInContext(
+    _rwWrapper->putTaskInContext(
         addressee,
         createMessage(CallSim::Rejected, "The call was rejected"),
         [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
 
-    _rwWrapper.asyncWrite(client._socket, createMessage(CallSim::Rejected, "The call was rejected"), client._clientId);
+    _rwWrapper->asyncWrite(client._socket, createMessage(CallSim::Rejected, "The call was rejected"), client._clientId);
 }
 
 void Server::handleAcceptCall(const SavedClient& client, const CallSim::Message& message) {
@@ -223,18 +232,18 @@ void Server::handleAcceptCall(const SavedClient& client, const CallSim::Message&
     }
 
     SavedClient& addressee = addresseeOptional->get();
-    _rwWrapper.putTaskInContext(
+    _rwWrapper->putTaskInContext(
         addressee,
         createMessage(CallSim::Accepted, "", client._name),
         [this](SavedClient& addressee, const CallSim::Message& responseMsg) { handleMessage(addressee, responseMsg); });
 
-    _rwWrapper.asyncWrite(
+    _rwWrapper->asyncWrite(
         client._socket, createMessage(CallSim::MessageType::Accepted, "", addresseeName), client._clientId);
 }
 
 void Server::handleFinishCall(const SavedClient& client, const CallSim::Message& message) {
     if (client._name == message.from_user()) {
-        _rwWrapper.asyncWrite(client._socket,
+        _rwWrapper->asyncWrite(client._socket,
                               createMessage(CallSim::Ended, "The call was finished", message.from_user()),
                               client._clientId);
 
@@ -248,14 +257,14 @@ void Server::handleFinishCall(const SavedClient& client, const CallSim::Message&
         }
 
         SavedClient& addressee = addresseeOptional->get();
-        _rwWrapper.putTaskInContext(
+        _rwWrapper->putTaskInContext(
             addressee, message, [this](SavedClient& addressee, const CallSim::Message& responseMsg) {
                 handleMessage(addressee, responseMsg);
             });
     }
 
     if (client._name == message.to_user()) {
-        _rwWrapper.asyncWrite(
+        _rwWrapper->asyncWrite(
             client._socket,
             createMessage(CallSim::Ended, "The call was finished by another user", message.from_user()),
             client._clientId);
@@ -273,7 +282,7 @@ void Server::resendMessage(const SavedClient& client, const CallSim::Message& me
     }
 
     const SavedClient& addressee = addresseeOptional->get();
-    _rwWrapper.asyncWrite(
+    _rwWrapper->asyncWrite(
         addressee._socket, createMessage(CallSim::Text, message.payload(), client._name), addressee._clientId);
 }
 
@@ -297,7 +306,7 @@ std::optional<std::reference_wrapper<SavedClient>> Server::findClient(const std:
 }
 
 void Server::writeMessage(const SavedClient& client, const CallSim::Message& message) {
-    _rwWrapper.asyncWrite(client._socket, message, client._clientId);
+    _rwWrapper->asyncWrite(client._socket, message, client._clientId);
 }
 
 CallSim::Message Server::createMessage(const CallSim::MessageType msgType, const std::string& msgPayload,
