@@ -21,6 +21,7 @@ add_executable(Client
         inc/IRwWrapper.hpp
         src/IConsoleReader.cpp
         inc/IConsoleReader.hpp
+        inc/ConsoleReader.hpp
 )
 
 target_include_directories(Client PRIVATE
@@ -60,6 +61,7 @@ add_executable(ClientTest
         inc/IRwWrapper.hpp
         src/IConsoleReader.cpp
         inc/IConsoleReader.hpp
+        inc/ConsoleReader.hpp
 )
 
 target_include_directories(ClientTest PRIVATE

@@ -1,4 +1,5 @@
-#include "../inc/IConsoleReader.hpp"
+#include "ConsoleReader.hpp"
+#include "IConsoleReader.hpp"
 
 #include <iostream>
 

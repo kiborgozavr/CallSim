@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include "Connected.hpp"
+#include "ConsoleReader.hpp"
 #include "Message.pb.h"
 #include "RwWrapper.hpp"
 #include "StateFactory.hpp"
