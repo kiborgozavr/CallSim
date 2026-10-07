@@ -19,8 +19,9 @@ std::unique_ptr<IState> StateFactory::getState(Client& client, const common::Cli
             return std::make_unique<Answering>(client);
         case common::ClientStates::talking:
             return std::make_unique<Talking>(client);
+        default:
+            return std::make_unique<Connected>(client);
     }
-    return nullptr;
 }
 
 }  // namespace client

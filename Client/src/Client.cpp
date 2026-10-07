@@ -76,7 +76,6 @@ void Client::readFromConsole() {
 
 void Client::nextState(const CallSim::Message& message) {
     if (const auto newState = _state->transition(message); newState != _state->getState()) {
-        _state = nullptr;
         _state = _stateFactory.getState(*this, newState);
         _state->enter(message);
         return;
