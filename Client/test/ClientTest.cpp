@@ -27,6 +27,11 @@ protected:
 
         _client = std::make_unique<client::Client>(std::move(mockRwWrapper), std::move(mockConsoleReader), "Alice");
     }
+    void stopClientWork() {
+        EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
+
+        EXPECT_CALL(*_mockRwWrapper, stop());
+    }
 
     void stopClientWork() {
         EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
@@ -55,20 +60,16 @@ protected:
 TEST_F(ClientTest, StartsAndRegistersClient) {
     EXPECT_CALL(*_mockRwWrapper, start());
 
-    EXPECT_CALL(*_mockRwWrapper, asyncWrite(Truly([](CallSim::Message message) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(Truly([](const CallSim::Message& message) {
         return message.type() == CallSim::MessageType::Register;
-    })))
-    .WillOnce(Invoke([this](const CallSim::Message&) {
-        CallSim::Message registeredMessage;
-        registeredMessage.set_type(CallSim::MessageType::Registered);
+    })));
 
-        _client->handleMessage(registeredMessage);
-    }));
+    CallSim::Message registeredMessage;
+    registeredMessage.set_type(CallSim::MessageType::Registered);
 
-    EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
+    _client->handleMessage(registeredMessage);
 
-    EXPECT_CALL(*_mockRwWrapper, stop());
-
+    stopClientWork();
     _client->start();
 
     EXPECT_EQ(_client->getState(), common::ClientStates::registered);
@@ -79,23 +80,20 @@ TEST_F(ClientTest, RegisteredClientCanTransitionToCalling) {
 
     getRegisteredClient();
 
-    EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("call Bob"));
+    EXPECT_CALL(*_mockConsoleReader, readLine())
+    .WillOnce(Return("call Bob"));
 
-    EXPECT_CALL(*_mockRwWrapper, asyncWrite(Truly([](CallSim::Message message) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(Truly([](const CallSim::Message& message) {
         return message.type() == CallSim::MessageType::Call && message.to_user() == "Bob";
-    })))
-    .WillOnce(Invoke([this](const CallSim::Message&) {
-        CallSim::Message callingMessage;
-        callingMessage.set_type(CallSim::MessageType::Calling);
+    })));
 
-        _client->handleMessage(callingMessage);
-    }));
-
-    EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
-
-    EXPECT_CALL(*_mockRwWrapper, stop());
-
+    stopClientWork();
     _client->start();
+
+    CallSim::Message callingMessage;
+    callingMessage.set_type(CallSim::MessageType::Calling);
+
+    _client->handleMessage(callingMessage);
 
     EXPECT_EQ(_client->getState(), common::ClientStates::calling);
 }
