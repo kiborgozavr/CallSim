@@ -33,6 +33,12 @@ protected:
         EXPECT_CALL(*_mockRwWrapper, stop());
     }
 
+    void stopClientWork() {
+        EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
+
+        EXPECT_CALL(*_mockRwWrapper, stop());
+    }
+
     void getRegisteredClient() {
         EXPECT_CALL(*_mockRwWrapper, start());
 
