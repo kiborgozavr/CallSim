@@ -22,31 +22,53 @@ protected:
         _mockConsoleReader = mockConsoleReader.get();
 
         _client = std::make_unique<client::Client>(std::move(mockRwWrapper), std::move(mockConsoleReader), "Alice");
+        _state = std::make_unique<client::Talking>(*_client);
     }
 
     client::MockRwWrapper* _mockRwWrapper = nullptr;
     client::MockConsoleReader* _mockConsoleReader = nullptr;
     std::unique_ptr<client::Client> _client;
+    std::unique_ptr<client::Talking> _state;
 };
 
 TEST_F(TalkingTest, GetStateReturnsTalking) {
-    const auto state = std::make_unique<client::Talking>(*_client);
-
-    EXPECT_EQ(state->getState(), common::ClientStates::talking);
+    const auto result = _state->getState();
+    EXPECT_EQ(result, common::ClientStates::talking);
 }
 
 TEST_F(TalkingTest, EndedMessageReturnsRegistered) {
     CallSim::Message message;
     message.set_type(CallSim::MessageType::Ended);
-    const auto state = std::make_unique<client::Talking>(*_client);
 
-    EXPECT_EQ(state->transition(message), common::ClientStates::registered);
+    const auto result = _state->transition(message);
+    EXPECT_EQ(result, common::ClientStates::registered);
 }
 
 TEST_F(TalkingTest, OtherMessageKeepsTalking) {
     CallSim::Message message;
     message.set_type(CallSim::MessageType::Register);
-    const auto state = std::make_unique<client::Talking>(*_client);
 
-    EXPECT_EQ(state->transition(message), common::ClientStates::talking);
+    const auto result = _state->transition(message);
+    EXPECT_EQ(result, common::ClientStates::talking);
+}
+
+TEST_F(TalkingTest, EmptyInputDoesNothing) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(testing::_)).Times(0);
+    _state->handleConsoleInput("");
+}
+
+TEST_F(TalkingTest, TextInputSendsTextMessage) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(testing::Truly([](const CallSim::Message& message) {
+        return message.type() == CallSim::Text && message.payload() == "Hello";
+    })));
+
+    _state->handleConsoleInput("Hello");
+}
+
+TEST_F(TalkingTest, EndInputSendsTextMessage) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(testing::Truly([](const CallSim::Message& message) {
+        return message.type() == CallSim::End;
+    })));
+
+    _state->handleConsoleInput("end");
 }

@@ -28,16 +28,23 @@ protected:
         _client = std::make_unique<client::Client>(std::move(mockRwWrapper), std::move(mockConsoleReader), "Alice");
     }
 
+    void stopClientWork() {
+        EXPECT_CALL(*_mockConsoleReader, readLine()).WillOnce(Return("exit"));
+
+        EXPECT_CALL(*_mockRwWrapper, stop());
+    }
+
     void getRegisteredClient() {
         EXPECT_CALL(*_mockRwWrapper, start());
 
-        EXPECT_CALL(*_mockRwWrapper, asyncWrite(::testing::_))
-        .WillOnce(Invoke([this](const CallSim::Message&) {
-            CallSim::Message registeredMessage;
-            registeredMessage.set_type(CallSim::MessageType::Registered);
+        EXPECT_CALL(*_mockRwWrapper, asyncWrite(Truly([](const CallSim::Message& message) {
+            return message.type() == CallSim::MessageType::Register;
+        })));
 
-            _client->handleMessage(registeredMessage);
-        }));
+        CallSim::Message registeredMessage;
+        registeredMessage.set_type(CallSim::MessageType::Registered);
+
+        _client->handleMessage(registeredMessage);
     }
 
     client::MockRwWrapper* _mockRwWrapper = nullptr;

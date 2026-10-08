@@ -22,30 +22,38 @@ protected:
         _mockConsoleReader = mockConsoleReader.get();
 
         _client = std::make_unique<client::Client>(std::move(mockRwWrapper), std::move(mockConsoleReader), "Alice");
+        _state = std::make_unique<client::Connected>(*_client);
     }
 
     client::MockRwWrapper* _mockRwWrapper = nullptr;
     client::MockConsoleReader* _mockConsoleReader = nullptr;
     std::unique_ptr<client::Client> _client;
+    std::unique_ptr<client::Connected> _state;
 };
 
 TEST_F(ConnectedTest, GetStateReturnsConnected) {
-    const auto state = std::make_unique<client::Connected>(*_client);
-
-    EXPECT_EQ(state->getState(), common::ClientStates::connected);
+    const auto result = _state->getState();
+    EXPECT_EQ(result, common::ClientStates::connected);
 }
 
 TEST_F(ConnectedTest, RejectedMessageReturnsRegistered) {
     CallSim::Message message;
     message.set_type(CallSim::MessageType::Registered);
-    const auto state = std::make_unique<client::Connected>(*_client);
 
-    EXPECT_EQ(state->transition(message), common::ClientStates::registered);
+    const auto result = _state->transition(message);
+    EXPECT_EQ(result, common::ClientStates::registered);
 }
+
 TEST_F(ConnectedTest, OtherMessageKeepsConnected) {
     CallSim::Message message;
     message.set_type(CallSim::MessageType::Call);
-    const auto state = std::make_unique<client::Connected>(*_client);
 
-    EXPECT_EQ(state->transition(message), common::ClientStates::connected);
+    const auto result = _state->transition(message);
+    EXPECT_EQ(result, common::ClientStates::connected);
+}
+
+TEST_F(ConnectedTest, AnyInputDoesNotSendMessage) {
+    EXPECT_CALL(*_mockRwWrapper, asyncWrite(testing::_)).Times(0);
+
+    _state->handleConsoleInput("some text");
 }
