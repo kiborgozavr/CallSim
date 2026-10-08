@@ -7,6 +7,7 @@
 
 #include <memory>
 
+using testing::_;
 using testing::InSequence;
 using testing::Invoke;
 using testing::Return;
@@ -36,26 +37,26 @@ protected:
         return _server->saveClient(socket);
     }
 
-    unsigned int connectAndRegisterClient(const std::string& name,
-                                          std::shared_ptr<tcp::socket>& outSocket) {
+    unsigned int connectAndRegisterClient(const std::string& name, std::shared_ptr<tcp::socket>& outSocket) {
         const unsigned int clientId = connectClient(outSocket);
 
-        EXPECT_CALL(*_mockRwWrapper,
-                    asyncWrite(outSocket,
-                               Truly([](const CallSim::Message& m) {
-                                   return m.type() == CallSim::MessageType::Registered;
-                               }),
-                               clientId))
+        EXPECT_CALL(
+            *_mockRwWrapper,
+            asyncWrite(outSocket,
+                       Truly([](const CallSim::Message& m) { return m.type() == CallSim::MessageType::Registered; }),
+                       clientId))
             .Times(1);
 
         _server->handleMessage(makeMessage(CallSim::MessageType::Register, name), clientId);
         return clientId;
     }
 
-    CallSim::Message makeMessage(const CallSim::MessageType type,
-                             const std::string& from,
-                             const std::string& to = "",
-                             const std::string& payload = "") {
+    bool expectMessageType(const CallSim::MessageType expectedType, const CallSim::Message& message) {
+        return message.type() == expectedType;
+    }
+
+    CallSim::Message makeMessage(const CallSim::MessageType type, const std::string& from, const std::string& to = "",
+                                 const std::string& payload = "") {
         CallSim::Message msg;
         msg.set_type(type);
         msg.set_from_user(from);
@@ -81,14 +82,14 @@ TEST_F(ServerTest, ClientJoinsAndSendsCall) {
         InSequence seq;
 
         EXPECT_CALL(*_mockRwWrapper,
-                    asyncWrite(socket,
-                               Truly([](const CallSim::Message& m) {
-                                   return m.type() == CallSim::MessageType::Calling;
+                    asyncWrite(_,
+                               Truly([this](const CallSim::Message& message) {
+                                   return expectMessageType(CallSim::MessageType::Calling, message);
                                }),
                                clientId))
             .Times(1);
 
-        EXPECT_CALL(*_mockRwWrapper, putTaskInContext(::testing::_, ::testing::_, ::testing::_)).Times(1);
+        EXPECT_CALL(*_mockRwWrapper, putTaskInContext(_, _, _)).Times(1);
     }
 
     _server->handleMessage(callMsg, clientId);
