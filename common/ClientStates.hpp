@@ -9,6 +9,7 @@ enum class ClientStates {
     calling,
     answering,
     talking,
+    unknown,
 };
 
 constexpr std::string_view getStateName(const ClientStates state) {
@@ -23,8 +24,8 @@ constexpr std::string_view getStateName(const ClientStates state) {
             return "ANSWERING";
         case ClientStates::talking:
             return "TALKING";
+        default:
+            return "UNKNOWN";
     }
-
-    return "Unknown";
 }
 }  // namespace common
