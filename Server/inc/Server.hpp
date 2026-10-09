@@ -21,6 +21,7 @@ struct SavedClient {
 class Server {
 public:
     explicit Server(unsigned int port);
+    explicit Server(std::unique_ptr<IRwWrapper> rwWrapper);
 
     void start();
 
@@ -33,6 +34,8 @@ public:
     void checkAddressee(SavedClient& client, const CallSim::Message& message);
 
 private:
+    void fillTransitionTable();
+
     void registerClient(SavedClient& client, const CallSim::Message& message);
 
     void registerCall(SavedClient& client, const CallSim::Message& message);
@@ -54,7 +57,8 @@ private:
     void printLog(const SavedClient& client, const CallSim::Message& message);
     void printLog(const SavedClient& client);
 
-    RwWrapper _rwWrapper;
+    std::unique_ptr<IRwWrapper> _rwWrapper;
+
     std::map<std::pair<common::ClientStates, CallSim::MessageType>,
              std::pair<common::ClientStates, std::function<void(SavedClient&, const CallSim::Message&)>>>
         _transitionTable;
