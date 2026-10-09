@@ -17,8 +17,16 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googletest)
 
+option(ENABLE_COVERAGE "Enable code coverage" OFF)
+
+if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
+endif()
+
 enable_testing()
 
 add_subdirectory(Client)
 add_subdirectory(Server)
 add_subdirectory(proto)
+
