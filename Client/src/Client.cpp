@@ -1,6 +1,8 @@
 #include "Client.hpp"
 #include "Connected.hpp"
+#include "ConsoleReader.hpp"
 #include "Message.pb.h"
+#include "RwWrapper.hpp"
 #include "StateFactory.hpp"
 
 #include <chrono>
@@ -8,24 +10,30 @@
 #include <thread>
 
 namespace client {
-Client::Client(const unsigned int port, std::string clientName) :
-        _rwWrapper(*this, port),
+Client::Client(unsigned int port, std::string clientName) :
+        _rwWrapper(std::make_unique<RwWrapper>(*this, port)),
+        _consoleReader(std::make_unique<ConsoleReader>()),
+        _clientName(std::move(clientName)),
+        _state(std::make_unique<Connected>(*this)) {}
+
+Client::Client(std::unique_ptr<IRwWrapper> rwWrapper, std::unique_ptr<IConsoleReader> consoleReader,
+               std::string clientName) :
+        _rwWrapper(std::move(rwWrapper)),
+        _consoleReader(std::move(consoleReader)),
         _clientName(std::move(clientName)),
         _state(std::make_unique<Connected>(*this)) {}
 
 void Client::start() {
-    _rwWrapper.start();
+    _rwWrapper->start();
 
     const CallSim::Message message = createMessage(CallSim::MessageType::Register);
-    _rwWrapper.asyncWrite(message);
+    _rwWrapper->asyncWrite(message);
 
     readFromConsole();
-    stop();
+    _rwWrapper->stop();
 }
 
-void Client::stop() { _rwWrapper.stop(); }
-
-void Client::write(const CallSim::Message& message) { _rwWrapper.asyncWrite(message); }
+void Client::write(const CallSim::Message& message) { _rwWrapper->asyncWrite(message); }
 
 void Client::acceptCall() {
     const CallSim::Message message = createMessage(CallSim::MessageType::Accept, _contactName);
@@ -63,10 +71,8 @@ void Client::setTimestamp(CallSim::Message& message) {
 }
 
 void Client::readFromConsole() {
-    std::string line;
-
     while (true) {
-        std::getline(std::cin, line);
+        std::string line = _consoleReader->readLine();
         if (line == "exit") {
             break;
         }
@@ -100,5 +106,6 @@ void Client::handleMessage(const CallSim::Message& message) {
 
 std::string& Client::getContactName() { return _contactName; }
 void Client::setContactName(const std::string& contactName) { _contactName = contactName; }
+common::ClientStates Client::getState() const { return _state->getState(); }
 
 }  // namespace client

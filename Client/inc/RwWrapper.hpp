@@ -1,4 +1,6 @@
 #pragma once
+
+#include "IRwWrapper.hpp"
 #include "Message.pb.h"
 
 #include <boost/asio.hpp>
@@ -8,17 +10,17 @@ namespace client {
 class Client;
 using tcp = boost::asio::ip::tcp;
 
-class RwWrapper {
+class RwWrapper final : public IRwWrapper {
 public:
     explicit RwWrapper(Client& client, unsigned int port);
 
-    void start();
+    void start() override;
 
-    void stop();
+    void stop() override;
 
-    void asyncWrite(CallSim::Message message);
+    void asyncWrite(CallSim::Message message) override;
 
-    void asyncRead();
+    void asyncRead() override;
 
 private:
     void asyncReadMessage(std::uint32_t size);

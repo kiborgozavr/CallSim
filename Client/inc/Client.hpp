@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IConsoleReader.hpp"
 #include "IState.hpp"
 #include "Message.pb.h"
 #include "RwWrapper.hpp"
@@ -9,6 +10,8 @@ namespace client {
 class Client {
 public:
     explicit Client(unsigned int port, std::string clientName);
+    Client(std::unique_ptr<IRwWrapper> rwWrapper, std::unique_ptr<IConsoleReader> consoleReader,
+           std::string clientName);  // for tests only
 
     void start();
 
@@ -26,16 +29,17 @@ public:
     [[nodiscard]] std::string& getContactName();
     void setContactName(const std::string& contactName);
 
-private:
-    void stop();
+    [[nodiscard]] common::ClientStates getState() const;
 
+private:
     void readFromConsole();
 
     void nextState(const CallSim::Message& message);
 
     void setTimestamp(CallSim::Message& message);
 
-    RwWrapper _rwWrapper;
+    std::unique_ptr<IRwWrapper> _rwWrapper;
+    std::unique_ptr<IConsoleReader> _consoleReader;
     StateFactory _stateFactory;
 
     std::string _clientName;
