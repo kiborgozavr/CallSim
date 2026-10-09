@@ -8,7 +8,6 @@
 #include <memory>
 
 using testing::_;
-using testing::AnyNumber;
 using testing::Invoke;
 using testing::StrictMock;
 using testing::Truly;
@@ -34,12 +33,11 @@ protected:
     }
 
     void expectPutTaskInContext() {
-        EXPECT_CALL(*_mockRwWrapper, putTaskInContext(_, _, _))
-            .Times(AnyNumber())
-            .WillRepeatedly(Invoke([](server::SavedClient& client,
-                                      const CallSim::Message& message,
-                                      std::function<void(server::SavedClient&, const CallSim::Message&)>
-                                          function) { function(client, message); }));
+        ON_CALL(*_mockRwWrapper, putTaskInContext(_, _, _))
+            .WillByDefault(Invoke([](server::SavedClient& client,
+                                     const CallSim::Message& message,
+                                     std::function<void(server::SavedClient&, const CallSim::Message&)>
+                                         function) { function(client, message); }));
     }
 
     void startCall() {
