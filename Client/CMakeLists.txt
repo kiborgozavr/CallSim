@@ -62,6 +62,11 @@ add_executable(ClientTest
         src/IConsoleReader.cpp
         inc/IConsoleReader.hpp
         inc/ConsoleReader.hpp
+        test/AnsweringTest.cpp
+        test/CallingTest.cpp
+        test/ConnectedTest.cpp
+        test/RegisteredTest.cpp
+        test/TalkingTest.cpp
 )
 
 target_include_directories(ClientTest PRIVATE
