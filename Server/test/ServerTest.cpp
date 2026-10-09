@@ -85,6 +85,24 @@ protected:
         _server->handleMessage(makeMessage(CallSim::MessageType::Accept, "Bob", "Alice"), _bobId);
     }
 
+    void rejectCall() {
+        EXPECT_CALL(*_mockRwWrapper,
+                    asyncWrite(_aliceSocket,
+                               Truly([](const CallSim::Message& message) {
+                                   return message.type() == CallSim::MessageType::Rejected;
+                               }),
+                               _aliceId))
+            .Times(1);
+
+        EXPECT_CALL(*_mockRwWrapper,
+                    asyncWrite(_bobSocket,
+                               Truly([](const CallSim::Message& message) {
+                                   return message.type() == CallSim::MessageType::Rejected;
+                               }),
+                               _bobId))
+            .Times(1);
+    }
+
     unsigned int getConnectedClient(std::shared_ptr<tcp::socket>& outSocket) {
         auto socket = std::make_shared<tcp::socket>(_ioContext);
         outSocket = socket;
@@ -173,7 +191,17 @@ TEST_F(ServerTest, ClientEnterStateAnswering) {
     startCall();
 }
 
-TEST_F(ServerTest, ClientSendsTextMessageToAnotherClient) {
+TEST_F(ServerTest, ClientRejectsCall) {
+    createRegisteredClients();
+    expectPutTaskInContext();
+
+    startCall();
+    rejectCall();
+
+    _server->handleMessage(makeMessage(CallSim::MessageType::Reject, "Bob", "Alice"), _bobId);
+}
+
+TEST_F(ServerTest, ClientAcceptsCallAndSendsMessage) {
     createRegisteredClients();
     expectPutTaskInContext();
 
