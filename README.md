@@ -35,7 +35,7 @@ The application consists of two main components: `Client` and `Server`.
 
 For a detailed description of client state transitions and server-side state management, see [STATE_MACHINE.md](STATE_MACHINE.md).
 
-![CallSim State Machine](CallSim State Machine.png)
+![CallSim-State-Machine](CallSim-State-Machine.png)
 
 ### Client
 
