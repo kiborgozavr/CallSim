@@ -65,5 +65,3 @@ A typical call follows these steps:
 4. The recipient responds with `accept` or `reject`.
 5. If the call is accepted, both clients transition to `TALKING`. If it is rejected, both return to `REGISTERED`.
 6. When either participant ends the conversation, the server notifies both clients with the `ended` event and restores their states to `REGISTERED`.
-
-![CallSim State Machine](CallSim State Machine.png)
