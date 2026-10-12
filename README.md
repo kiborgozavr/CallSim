@@ -199,3 +199,5 @@ gcovr --root . \
 The command prints coverage statistics in the terminal and generates an HTML report with detailed source-level coverage information.
 
 Open `build/coverage.html` in a web browser to explore the report.
+
+![CodeCoverage](CodeCoverage.png)
