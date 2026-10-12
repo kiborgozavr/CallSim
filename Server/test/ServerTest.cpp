@@ -33,11 +33,11 @@ protected:
     }
 
     void expectPutTaskInContext() {
-        ON_CALL(*_mockRwWrapper, putTaskInContext(_, _, _))
-            .WillByDefault(Invoke([](server::SavedClient& client,
-                                     const CallSim::Message& message,
-                                     std::function<void(server::SavedClient&, const CallSim::Message&)>
-                                         function) { function(client, message); }));
+        EXPECT_CALL(*_mockRwWrapper, putTaskInContext(_, _, _))
+            .WillRepeatedly(Invoke([](server::SavedClient& client,
+                                      const CallSim::Message& message,
+                                      std::function<void(server::SavedClient&, const CallSim::Message&)>
+                                          function) { function(client, message); }));
     }
 
     void startCall() {
